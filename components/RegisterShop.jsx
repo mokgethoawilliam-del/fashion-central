@@ -10,84 +10,63 @@ export default function RegisterShop() {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    const generateSlug = (name) => {
-        return name
-            .toLowerCase()
-            .replace(/[^\w ]+/g, '')
-            .replace(/ +/g, '-');
-    };
+    const generateSlug = (name) =>
+        name.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
 
     const handleRegister = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-
         const slug = generateSlug(shopName);
 
         try {
-            // 1. Check if slug is taken
             const { data: existingVendor } = await supabase
-                .from('public_vendors')
-                .select('id')
-                .eq('slug', slug)
-                .single();
+                .from('public_vendors').select('id').eq('slug', slug).single();
 
             if (existingVendor) {
-                throw new Error('A shop with a similar name already exists. Please try a different name.');
+                throw new Error('A studio with a similar name already exists. Please try a different name.');
             }
 
-            // 2. Create the Vendor record first to get an ID
-            // We do this first because the Auth trigger needs a valid vendor_id
             const { data: newVendor, error: vendorErr } = await supabase
                 .from('vendors')
-                .insert([{ 
-                    name: shopName, 
+                .insert([{
+                    name: shopName,
                     slug: slug,
                     branding: {
-                        primary_color: "#00e676",
-                        secondary_color: "#1e293b",
+                        primary_color: '#8b5cf6',
+                        secondary_color: '#0d0d14',
                         hero_text: `Welcome to ${shopName}`
                     }
                 }])
-                .select()
-                .single();
+                .select().single();
 
             if (vendorErr) throw vendorErr;
 
-            // 3. Sign up the user with vendor_id in metadata
             const { data: authData, error: authErr } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: {
-                        full_name: 'Shop Owner',
-                        vendor_id: newVendor.id
-                    },
+                    data: { full_name: 'Studio Owner', vendor_id: newVendor.id },
                     emailRedirectTo: `${window.location.origin}/admin`
                 }
             });
 
             if (authErr) {
-                // Cleanup vendor if auth fails
                 await supabase.from('vendors').delete().eq('id', newVendor.id);
                 throw authErr;
             }
 
-            // 4. Manually create profile as a fallback (triggers might be slow)
-            // We use the ID from the signUp result
             if (authData?.user?.id) {
                 await supabase.from('profiles').insert([{
                     id: authData.user.id,
                     vendor_id: newVendor.id,
-                    full_name: 'Shop Owner',
+                    full_name: 'Studio Owner',
                     role: 'admin'
                 }]);
             }
 
-            // Success! 
-            alert('Shop registered successfully! You are now being logged in.');
+            alert('Studio registered! You are now being logged in.');
             navigate('/admin');
-            
         } catch (err) {
             setError(err.message);
         } finally {
@@ -95,146 +74,94 @@ export default function RegisterShop() {
         }
     };
 
+    const inputStyle = {
+        width: '100%', padding: '12px 14px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '10px', color: '#f1f5f9',
+        outline: 'none', fontSize: '0.95rem',
+        boxSizing: 'border-box', transition: 'border-color 0.2s'
+    };
+
     return (
-        <div className="login-container" style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #09090b 0%, #18181b 100%)',
-            padding: '20px'
+        <div style={{
+            minHeight: '100vh', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', background: '#0d0d14',
+            padding: '2rem', fontFamily: "'Inter', -apple-system, sans-serif", color: '#fff'
         }}>
-            <div className="login-card" style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '3rem',
-                borderRadius: '24px',
-                width: '100%',
-                maxWidth: '480px',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}>
-                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <div style={{ 
-                        fontSize: '2.5rem', 
-                        fontWeight: '900', 
-                        color: '#00e676', 
-                        marginBottom: '0.5rem',
-                        letterSpacing: '-1.5px'
-                    }}>
-                        VulaHub
+            {/* Background glow */}
+            <div style={{ position: 'fixed', top: '10%', right: '5%', width: '500px', height: '500px', borderRadius: '50%', background: 'rgba(139,92,246,0.06)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+
+            <div style={{ width: '100%', maxWidth: '460px', position: 'relative', zIndex: 1 }}>
+                <div style={{ marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem' }}>
+                        <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #8b5cf6, #c084fc)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>✂</div>
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>Fashion Central</span>
                     </div>
-                    <p style={{ color: '#94a3b8', fontSize: '1.1rem' }}>Start your digital Kota shop</p>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem', color: '#f1f5f9' }}>Launch your studio</h1>
+                    <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Join Fashion Central and grow your styling business</p>
                 </div>
 
                 {error && (
-                    <div style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        color: '#f87171',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        marginBottom: '2rem',
-                        fontSize: '0.9rem',
-                        textAlign: 'center'
-                    }}>
+                    <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', padding: '12px 16px', borderRadius: '10px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleRegister}>
-                    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ color: '#cbd5e1', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>KOTA SHOP NAME</label>
+                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8' }}>Studio / Shop Name</label>
                         <input
-                            type="text"
-                            required
-                            className="kds-input"
-                            value={shopName}
-                            onChange={(e) => setShopName(e.target.value)}
-                            placeholder="e.g. Mams Kitchen"
-                            style={{ 
-                                width: '100%', 
-                                padding: '14px 16px', 
-                                background: 'rgba(255, 255, 255, 0.05)', 
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                color: '#ffffff',
-                                borderRadius: '12px',
-                                fontSize: '1rem',
-                                outline: 'none'
-                            }}
+                            type="text" required value={shopName}
+                            onChange={e => setShopName(e.target.value)}
+                            placeholder="e.g. King Wiz Studio"
+                            style={inputStyle}
+                            onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                         />
                     </div>
-
-                    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ color: '#cbd5e1', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>OWNER EMAIL</label>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8' }}>Owner Email</label>
                         <input
-                            type="email"
-                            required
-                            className="kds-input"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="owner@yourshop.co.za"
-                            style={{ 
-                                width: '100%', 
-                                padding: '14px 16px', 
-                                background: 'rgba(255, 255, 255, 0.05)', 
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                color: '#ffffff',
-                                borderRadius: '12px',
-                                fontSize: '1rem',
-                                outline: 'none'
-                            }}
+                            type="email" required value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="owner@yourstudio.co.za"
+                            style={inputStyle}
+                            onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                         />
                     </div>
-
-                    <div className="form-group" style={{ marginBottom: '2.5rem' }}>
-                        <label style={{ color: '#cbd5e1', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>CHOOSE PASSWORD</label>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8' }}>Password</label>
                         <input
-                            type="password"
-                            required
-                            className="kds-input"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder=""
-                            style={{ 
-                                width: '100%', 
-                                padding: '14px 16px', 
-                                background: 'rgba(255, 255, 255, 0.05)', 
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                color: '#ffffff',
-                                borderRadius: '12px',
-                                fontSize: '1rem',
-                                outline: 'none'
-                            }}
+                            type="password" required value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            style={inputStyle}
+                            onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                         />
                     </div>
 
                     <button
-                        type="submit"
-                        disabled={loading}
-                        className="btn-primary"
+                        type="submit" disabled={loading}
                         style={{
-                            width: '100%',
-                            padding: '1.1rem',
-                            fontSize: '1.1rem',
-                            fontWeight: '700',
-                            borderRadius: '14px',
-                            background: '#00e676',
-                            color: '#000',
+                            width: '100%', padding: '13px', marginTop: '0.25rem',
+                            background: loading ? '#4c1d95' : 'linear-gradient(135deg, #7c3aed, #8b5cf6)',
+                            color: '#fff', border: 'none', borderRadius: '10px',
+                            fontWeight: '600', fontSize: '0.95rem',
                             cursor: loading ? 'not-allowed' : 'pointer',
-                            transition: 'transform 0.2s',
-                            border: 'none'
+                            boxShadow: '0 4px 15px rgba(139,92,246,0.3)'
                         }}
                     >
-                        {loading ? 'Creating Your Shop...' : 'Launch My Digital Shop'}
+                        {loading ? 'Creating your studio...' : 'Launch My Studio'}
                     </button>
                 </form>
 
-                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                        Already have a shop? <Link to="/login" style={{ color: '#00e676', textDecoration: 'none', fontWeight: 'bold' }}>Sign In</Link>
-                    </p>
-                </div>
+                <p style={{ textAlign: 'center', marginTop: '1.75rem', color: '#475569', fontSize: '0.875rem' }}>
+                    Already registered?{' '}
+                    <Link to="/login" style={{ color: '#a78bfa', textDecoration: 'none', fontWeight: '600' }}>Sign In</Link>
+                </p>
             </div>
         </div>
     );

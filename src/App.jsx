@@ -8,6 +8,7 @@ import RegisterShop from '../components/RegisterShop'
 import PlatformHome from '../components/PlatformHome'
 import LegalTerms from '../components/LegalTerms'
 import AppFeedback from '../components/AppFeedback'
+import KingsWearLanding from '../components/KingsWearLanding'
 
 function AuthGuard({ children, session }) {
     if (!session) return <Navigate to="/login" replace />;
@@ -33,7 +34,7 @@ function App() {
         return () => subscription.unsubscribe();
     }, []);
 
-    if (loading) return <div style={{ background: '#0f172a', color: '#fff', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading VulaHub...</div>;
+    if (loading) return <div style={{ background: '#0d0d14', color: '#a78bfa', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', letterSpacing: '0.05em' }}>Loading Fashion Central...</div>;
 
     return (
         <>
@@ -58,6 +59,9 @@ function App() {
 
                     {/* Legal Terms & Disclaimer */}
                     <Route path="/legal" element={<LegalTerms />} /> 
+
+                    {/* Kings Wear Landing Page */}
+                    <Route path="/kingswear" element={<KingsWearLanding />} /> 
 
                     {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />
