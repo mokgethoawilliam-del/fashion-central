@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../src/supabaseClient";
 
 /* ─── Luxury Header ─── */
-function LuxuryHeader() {
+function LuxuryHeader({ vendorName, branding, onNavClick }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -31,7 +31,11 @@ function LuxuryHeader() {
     setMenuOpen(false);
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: "smooth" });
+    onNavClick?.();
   };
+
+  const primaryColor = branding?.primary_color || "#C9A646";
+  const logoUrl = branding?.logo_url || "";
 
   const headerStyle = {
     position: "fixed",
@@ -57,7 +61,7 @@ function LuxuryHeader() {
     fontWeight: 800,
     letterSpacing: "0.25em",
     textTransform: "uppercase",
-    color: scrolled ? "#C9A646" : "#fff",
+    color: scrolled ? primaryColor : "#fff",
     textDecoration: "none",
     transition: "color 0.4s ease-in-out",
     cursor: "pointer",
@@ -77,9 +81,9 @@ function LuxuryHeader() {
   };
 
   const ctaStyle = {
-    border: "1px solid #C9A646",
+    border: `1px solid ${primaryColor}`,
     padding: "10px 26px",
-    color: "#C9A646",
+    color: primaryColor,
     fontSize: "0.75rem",
     fontWeight: 600,
     letterSpacing: "0.18em",
@@ -96,7 +100,7 @@ function LuxuryHeader() {
     display: "block",
     width: "24px",
     height: "2px",
-    background: scrolled ? "#C9A646" : "#fff",
+    background: scrolled ? primaryColor : "#fff",
     transition: "all 0.35s ease",
     transformOrigin: "center",
   };
@@ -105,8 +109,13 @@ function LuxuryHeader() {
     <>
       <header style={headerStyle}>
         {/* Logo */}
-        <a href="#hero" onClick={(e) => handleNavClick(e, "#hero")} style={logoStyle}>
-          Kings Wear
+        <a href="#hero" onClick={(e) => handleNavClick(e, "#hero")} style={{ ...logoStyle, display: "flex", alignItems: "center", gap: "12px", letterSpacing: "0.08em" }}>
+          {logoUrl ? (
+            <span style={{ width: "44px", height: "44px", borderRadius: "14px", background: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "6px", boxShadow: "0 10px 24px rgba(0,0,0,0.18)" }}>
+              <img src={logoUrl} alt={`${vendorName || "Studio"} logo`} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            </span>
+          ) : null}
+          <span>{vendorName || "Kings Wear"}</span>
         </a>
 
         {/* Desktop Nav */}
@@ -118,7 +127,7 @@ function LuxuryHeader() {
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
               style={linkStyle}
-              onMouseEnter={(e) => { e.target.style.color = "#C9A646"; e.target.style.borderBottomColor = "#C9A646"; }}
+              onMouseEnter={(e) => { e.target.style.color = primaryColor; e.target.style.borderBottomColor = primaryColor; }}
               onMouseLeave={(e) => { e.target.style.color = "#fff"; e.target.style.borderBottomColor = "transparent"; }}
             >
               {link.label}
@@ -128,8 +137,8 @@ function LuxuryHeader() {
             href="#booking"
             onClick={(e) => handleNavClick(e, "#booking")}
             style={ctaStyle}
-            onMouseEnter={(e) => { e.target.style.background = "#C9A646"; e.target.style.color = "#000"; }}
-            onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#C9A646"; }}
+            onMouseEnter={(e) => { e.target.style.background = primaryColor; e.target.style.color = "#000"; }}
+            onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = primaryColor; }}
           >
             Book Fitting
           </a>
@@ -200,7 +209,7 @@ function LuxuryHeader() {
               fontFamily: "'Inter', sans-serif",
               transition: "color 0.3s ease",
             }}
-            onMouseEnter={(e) => { e.target.style.color = "#C9A646"; }}
+            onMouseEnter={(e) => { e.target.style.color = primaryColor; }}
             onMouseLeave={(e) => { e.target.style.color = "#fff"; }}
           >
             {link.label}
@@ -215,8 +224,8 @@ function LuxuryHeader() {
             padding: "14px 40px",
             marginTop: "16px",
           }}
-          onMouseEnter={(e) => { e.target.style.background = "#C9A646"; e.target.style.color = "#000"; }}
-          onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#C9A646"; }}
+            onMouseEnter={(e) => { e.target.style.background = primaryColor; e.target.style.color = "#000"; }}
+            onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = primaryColor; }}
         >
           Book Fitting
         </a>
@@ -238,6 +247,7 @@ export default function KingsWearLanding() {
   const [vendorId, setVendorId] = useState(null);
   const [vendorProfile, setVendorProfile] = useState(null);
   const [testimonials, setTestimonials] = useState([]);
+  const [gallery, setGallery] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -249,17 +259,30 @@ export default function KingsWearLanding() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase
-        .from("vendors")
-        .select("id, name, branding")
-        .or("subdomain_slug.eq.kingswear,subdomain_slug.eq.kings-wear,name.ilike.%kings%wear%")
-        .limit(1)
-        .single();
+      const pathSlug = window.location.pathname.replace(/^\/+/, "").split("/")[0] || "kingswear";
+      let { data } = await supabase
+        .from("public_vendors")
+        .select("*")
+        .eq("slug", pathSlug)
+        .maybeSingle();
+      if (!data && pathSlug === "kingswear") {
+        const alt = await supabase.from("public_vendors").select("*").eq("slug", "kings-wear").maybeSingle();
+        data = alt.data;
+      }
+      if (!data) {
+        const alt = await supabase
+          .from("public_vendors")
+          .select("*")
+          .or("slug.eq.kingswear,slug.eq.kings-wear,name.ilike.%kings%wear%")
+          .limit(1)
+          .maybeSingle();
+        data = alt.data;
+      }
       if (data) {
         setVendorId(data.id);
         setVendorProfile(data);
       } else {
-        const { data: anyVendor } = await supabase.from("vendors").select("id, name, branding").limit(1).single();
+        const { data: anyVendor } = await supabase.from("public_vendors").select("*").limit(1).single();
         if (anyVendor) {
           setVendorId(anyVendor.id);
           setVendorProfile(anyVendor);
@@ -270,7 +293,7 @@ export default function KingsWearLanding() {
   }, []);
 
   useEffect(() => {
-    async function loadTestimonials() {
+    async function loadSupportingData() {
       if (!vendorId) return;
       const { data } = await supabase
         .from("testimonials")
@@ -280,8 +303,16 @@ export default function KingsWearLanding() {
         .order("created_at", { ascending: false })
         .limit(6);
       if (data) setTestimonials(data);
+
+      const { data: galleryData } = await supabase
+        .from("site_gallery")
+        .select("*")
+        .eq("vendor_id", vendorId)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      if (galleryData) setGallery(galleryData);
     }
-    loadTestimonials();
+    loadSupportingData();
   }, [vendorId]);
 
   const handleSubmit = async (e) => {
@@ -327,13 +358,39 @@ export default function KingsWearLanding() {
     }
   };
 
+  const branding = vendorProfile?.branding || {};
+  const effectiveBranding = {
+    ...branding,
+    logo_url: branding.logo_url || vendorProfile?.logo_url || "",
+  };
+  const primaryColor = branding.primary_color || "#C9A646";
+  const secondaryColor = branding.secondary_color || "#0d0d14";
+  const contactEmail = branding.contact_email || "bookings@kingswear.co.za";
+  const whatsappNumber = branding.contact_whatsapp || branding.whatsapp_number || branding.whatsapp || "";
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I’d like to book a fitting with ${vendorProfile?.name || "Kings Wear"}.`)}`
+    : null;
+  const locationLabel = branding.location_label || branding.city || "Polokwane, Limpopo";
+  const heroTitle = branding.hero_title || "Tailored for";
+  const heroHighlight = branding.hero_highlight || "Kings";
+  const heroSubtitle = branding.hero_subtitle || "Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.";
+  const aboutText = branding.about_text || "Kings Wear Clothing is a premium tailoring brand founded by King Wiz, specializing in bespoke suits crafted for men and women who value precision, elegance, and status. Each piece is designed to elevate your presence and reflect confidence at the highest level.";
+  const tagline = branding.tagline || "Premium Bespoke Tailoring";
+  const galleryImages = gallery.length > 0
+    ? gallery.map((item) => item.image_url).filter(Boolean)
+    : [
+        "https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?w=600&q=80",
+        "https://images.unsplash.com/photo-1520975922324-93f8b39d19d6?w=600&q=80",
+        "https://images.unsplash.com/photo-1542060748-10c28b62716b?w=600&q=80",
+      ];
+
   /* Shared section heading style */
   const sectionHeading = {
     fontSize: "0.75rem",
     fontWeight: 600,
     letterSpacing: "0.3em",
     textTransform: "uppercase",
-    color: "#C9A646",
+    color: primaryColor,
     marginBottom: "16px",
     fontFamily: "'Inter', sans-serif",
   };
@@ -360,14 +417,6 @@ export default function KingsWearLanding() {
     letterSpacing: "0.02em",
     transition: "border-color 0.3s ease",
   };
-
-  const branding = vendorProfile?.branding || {};
-  const contactEmail = branding.contact_email || "bookings@kingswear.co.za";
-  const whatsappNumber = branding.whatsapp_number || branding.whatsapp || "";
-  const whatsappHref = whatsappNumber
-    ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent("Hi, I’d like to book a fitting with Kings Wear.")}`
-    : null;
-  const locationLabel = branding.location_label || branding.city || "Polokwane, Limpopo";
   const faqItems = [
     {
       q: "How do fittings work?",
@@ -398,9 +447,9 @@ export default function KingsWearLanding() {
   };
 
   return (
-    <div style={{ backgroundColor: "#000", color: "#fff", fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: secondaryColor, color: "#fff", fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
 
-      <LuxuryHeader />
+      <LuxuryHeader vendorName={vendorProfile?.name} branding={effectiveBranding} />
 
       {/* HERO */}
       <section
@@ -411,7 +460,7 @@ export default function KingsWearLanding() {
           alignItems: "center",
           justifyContent: "center",
           textAlign: "center",
-          backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=1920&q=80')",
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('${branding.hero_image || "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=1920&q=80"}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           position: "relative",
@@ -429,11 +478,11 @@ export default function KingsWearLanding() {
             fontSize: "0.75rem",
             letterSpacing: "0.4em",
             textTransform: "uppercase",
-            color: "#C9A646",
+            color: primaryColor,
             marginBottom: "24px",
             fontWeight: 500,
           }}>
-            Premium Bespoke Tailoring
+            {tagline}
           </p>
           <h1 style={{
             fontSize: "clamp(2.5rem, 8vw, 5rem)",
@@ -444,8 +493,8 @@ export default function KingsWearLanding() {
             letterSpacing: "0.06em",
             lineHeight: 1.1,
           }}>
-            Tailored for{" "}
-            <span style={{ color: "#C9A646", fontWeight: 600 }}>Kings</span>
+            {heroTitle}{" "}
+            <span style={{ color: primaryColor, fontWeight: 600 }}>{heroHighlight}</span>
           </h1>
           <p style={{
             fontSize: "clamp(0.95rem, 2.5vw, 1.15rem)",
@@ -454,16 +503,16 @@ export default function KingsWearLanding() {
             lineHeight: 1.7,
             fontWeight: 300,
           }}>
-            Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.
+            {heroSubtitle}
           </p>
           <a
             href="#booking"
             onClick={(e) => scrollToSection(e, "#booking")}
             style={{
-              border: "1px solid #C9A646",
+              border: `1px solid ${primaryColor}`,
               padding: "16px 48px",
               textDecoration: "none",
-              color: "#C9A646",
+              color: primaryColor,
               display: "inline-block",
               fontSize: "0.8rem",
               fontWeight: 600,
@@ -471,8 +520,8 @@ export default function KingsWearLanding() {
               textTransform: "uppercase",
               transition: "all 0.3s ease",
             }}
-            onMouseEnter={e => { e.target.style.backgroundColor = "#C9A646"; e.target.style.color = "#000"; }}
-            onMouseLeave={e => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#C9A646"; }}
+            onMouseEnter={e => { e.target.style.backgroundColor = primaryColor; e.target.style.color = "#000"; }}
+            onMouseLeave={e => { e.target.style.backgroundColor = "transparent"; e.target.style.color = primaryColor; }}
           >
             Book a Fitting
           </a>
@@ -489,7 +538,7 @@ export default function KingsWearLanding() {
                 letterSpacing: "0.04em",
               }}
             >
-              {whatsappHref ? "Prefer WhatsApp? Start the conversation now." : "Get styled for weddings, events, and elevated everyday looks."}
+          {whatsappHref ? "Prefer WhatsApp? Start the conversation now." : "Get styled for weddings, events, and elevated everyday looks."}
             </a>
           </div>
         </div>
@@ -500,15 +549,12 @@ export default function KingsWearLanding() {
         <p style={sectionHeading}>Our Story</p>
         <h2 style={sectionTitle}>About Kings Wear</h2>
         <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: 1.9, maxWidth: "680px", margin: "0 auto", fontSize: "1rem", fontWeight: 300 }}>
-          Kings Wear Clothing is a premium tailoring brand founded by King Wiz,
-          specializing in bespoke suits crafted for men and women who value
-          precision, elegance, and status. Each piece is designed to elevate your
-          presence and reflect confidence at the highest level.
+          {aboutText}
         </p>
       </section>
 
       {/* Divider */}
-      <div style={{ maxWidth: "120px", height: "1px", background: "rgba(201,166,70,0.3)", margin: "0 auto" }} />
+      <div style={{ maxWidth: "120px", height: "1px", background: `${primaryColor}55`, margin: "0 auto" }} />
 
       {/* SERVICES */}
       <section id="services" style={{ padding: "100px 24px" }}>
@@ -539,8 +585,8 @@ export default function KingsWearLanding() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "28px" }}>
             {pricingCards.map((card) => (
-              <div key={card.title} style={{ border: "1px solid rgba(201,166,70,0.2)", background: "rgba(255,255,255,0.02)", padding: "36px 28px", textAlign: "left" }}>
-                <div style={{ color: "#C9A646", fontSize: "0.8rem", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "16px" }}>{card.price}</div>
+              <div key={card.title} style={{ border: `1px solid ${primaryColor}33`, background: "rgba(255,255,255,0.02)", padding: "36px 28px", textAlign: "left" }}>
+                <div style={{ color: primaryColor, fontSize: "0.8rem", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "16px" }}>{card.price}</div>
                 <h3 style={{ fontSize: "1.15rem", marginBottom: "12px", fontWeight: 500, fontFamily: "'Outfit', sans-serif" }}>{card.title}</h3>
                 <p style={{ color: "rgba(255,255,255,0.58)", lineHeight: 1.7, fontSize: "0.94rem" }}>{card.copy}</p>
               </div>
@@ -556,11 +602,7 @@ export default function KingsWearLanding() {
           <h2 style={sectionTitle}>Transformations & Looks</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
-          {[
-            "https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?w=600&q=80",
-            "https://images.unsplash.com/photo-1520975922324-93f8b39d19d6?w=600&q=80",
-            "https://images.unsplash.com/photo-1542060748-10c28b62716b?w=600&q=80",
-          ].map((src, i) => (
+          {galleryImages.slice(0, 3).map((src, i) => (
             <div key={i} style={{ overflow: "hidden" }}>
               <img
                 src={src}
@@ -706,7 +748,7 @@ export default function KingsWearLanding() {
 
         <div style={{ color: "rgba(255,255,255,0.4)", marginTop: "28px", fontSize: "0.85rem", fontWeight: 300 }}>
           {whatsappHref ? (
-            <a href={whatsappHref} target="_blank" rel="noreferrer" style={{ color: "#C9A646", textDecoration: "none" }}>
+            <a href={whatsappHref} target="_blank" rel="noreferrer" style={{ color: primaryColor, textDecoration: "none" }}>
               Or message directly on WhatsApp
             </a>
           ) : (
@@ -736,7 +778,7 @@ export default function KingsWearLanding() {
         textAlign: "center",
         borderTop: "1px solid rgba(255,255,255,0.06)",
       }}>
-        <p style={{ color: "#C9A646", fontSize: "0.75rem", letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: "16px", fontWeight: 500 }}>
+        <p style={{ color: primaryColor, fontSize: "0.75rem", letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: "16px", fontWeight: 500 }}>
           {vendorProfile?.name || "Kings Wear Clothing"}
         </p>
         <div style={{ display: "grid", gap: "8px", color: "rgba(255,255,255,0.46)", fontSize: "0.92rem", marginBottom: "24px" }}>
@@ -748,7 +790,7 @@ export default function KingsWearLanding() {
           <a
             href="#booking"
             onClick={(e) => scrollToSection(e, "#booking")}
-            style={{ border: "1px solid #C9A646", padding: "12px 24px", color: "#C9A646", textDecoration: "none", textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.16em" }}
+            style={{ border: `1px solid ${primaryColor}`, padding: "12px 24px", color: primaryColor, textDecoration: "none", textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.16em" }}
           >
             Book a Fitting
           </a>

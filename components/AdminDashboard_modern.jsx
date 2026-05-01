@@ -1671,14 +1671,7 @@ export default function AdminDashboard({ session }) {
                 const isCancelled = status === 'cancelled';
                 const isRestricted = (isExpired && status !== 'active') || isPastDue || isCancelled;
                 
-                if (!isRestricted && (status === 'trial' || !status)) {
-                    return (
-                        <div style={{ background: 'linear-gradient(90deg, #00e676, #00c853)', color: '#0f172a', padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                            <span>🎁 You are on a {daysLeft}-day free trial.</span>
-                            <button onClick={handleSubscribe} style={{ background: '#0f172a', color: '#fff', border: 'none', padding: '0.4rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Subscribe Now</button>
-                        </div>
-                    );
-                }
+                if (!isRestricted && (status === 'trial' || !status)) return null;
 
                 if (isRestricted) {
                     return (
@@ -2082,7 +2075,7 @@ export default function AdminDashboard({ session }) {
                     if (isExpired || vendorConfig?.subscription_status === 'active' || !vendorConfig) return null;
                     const urgent = daysLeft <= 2;
                     return (
-                        <div style={{ background: urgent ? 'rgba(239,68,68,0.15)' : 'rgba(251,191,36,0.1)', borderBottom: `1px solid ${urgent ? '#ef4444' : '#fbbf24'}`, padding: '0.6rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                        <div style={{ background: urgent ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.08)', borderBottom: `1px solid ${urgent ? '#ef4444' : '#fbbf24'}`, padding: '0.45rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.8rem' }}>
                             <span style={{ color: urgent ? '#fca5a5' : '#fcd34d' }}>
                                 {urgent ? '⚠️' : '⏳'} <strong>{daysLeft} day{daysLeft !== 1 ? 's' : ''} left on your free trial.</strong> Subscribe to avoid interruption.
                             </span>
