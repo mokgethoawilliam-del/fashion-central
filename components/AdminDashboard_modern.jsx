@@ -142,6 +142,13 @@ export default function AdminDashboard({ session }) {
         ? 'Hello! I am your Studio Copilot. I can help you log inventory, and point out stock risks.'
         : 'Hello! I am your AI Manager. I can help with bookings, orders, and day-to-day operations across your studio.';
 
+    const getOrderItemName = (item) =>
+        item?.menu_items?.name ||
+        item?.name ||
+        item?.service_name ||
+        item?.title ||
+        'Client Item';
+
     useEffect(() => {
         aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [aiMessages, aiLoading]);
@@ -352,7 +359,8 @@ export default function AdminDashboard({ session }) {
                 async (payload) => {
                     const newOrderRow = payload.new;
                     
-                    // Fetch the full order tree so we have the order_items and recipe_json necessary for deductions
+                    // Fashion Central may not have the restaurant-style menu relation.
+                    // Pull a flatter order shape so the dashboard can still render.
                     const { data: fullOrder } = await supabase
                         .from('orders')
                         .select(`
@@ -360,7 +368,8 @@ export default function AdminDashboard({ session }) {
                             order_items (
                                 quantity,
                                 modifiers_json,
-                                menu_items (name, recipe_json)
+                                menu_item_id,
+                                name
                             )
                         `)
                         .eq('id', newOrderRow.id)
@@ -505,7 +514,8 @@ export default function AdminDashboard({ session }) {
                     order_items (
                         quantity,
                         modifiers_json,
-                        menu_items (name, recipe_json)
+                        menu_item_id,
+                        name
                     )
                 `)
                 .eq('vendor_id', currentVendorId)
@@ -572,10 +582,7 @@ export default function AdminDashboard({ session }) {
 
             const { data: reservationData, error: reservationErr } = await supabase
                 .from('reservations')
-                .select(`
-                    *,
-                    locations (name)
-                `)
+                .select('*')
                 .eq('vendor_id', currentVendorId)
                 .order('reservation_date', { ascending: true })
                 .order('reservation_time', { ascending: true });
@@ -975,7 +982,7 @@ export default function AdminDashboard({ session }) {
         const tableRows = [];
 
         displayedHistoryOrders.forEach(order => {
-            const itemsStr = order.order_items?.map(i => `${i.quantity}x ${i.menu_items?.name}`).join(', ') || '';
+            const itemsStr = order.order_items?.map(i => `${i.quantity}x ${getOrderItemName(i)}`).join(', ') || '';
             const rowData = [
                 order.order_number,
                 new Date(order.created_at).toLocaleDateString(),
@@ -1629,7 +1636,7 @@ export default function AdminDashboard({ session }) {
     const sidebarNavItems = [
         { id: 'overview', label: 'Studio Overview', icon: <Icons.Dashboard /> },
         { id: 'ai', label: 'AI Manager', icon: <Icons.Brain />, accent: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.2))', borderColor: 'rgba(139,92,246,0.5)' },
-        { id: 'kds', label: 'Client Orders', icon: <Icons.Studio /> },
+        { id: 'kds', label: 'Client Orders', icon: <Icons.Kitchen /> },
         { id: 'support', label: 'Client Chat', icon: <Icons.Chat /> },
         { id: 'reservations', label: 'Appointments', icon: <Icons.Calendar /> },
         { id: 'history', label: 'Client History', icon: <Icons.History /> },
@@ -3696,10 +3703,10 @@ export default function AdminDashboard({ session }) {
                                             <td>{new Date(o.updated_at || o.created_at).toLocaleString()}</td>
                                             <td>
                                                 {o.customer_name} ({o.customer_phone})<br />
-                                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}> {o.locations?.name || 'Local'}</span>
+                                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}> {o.locations?.name || 'Studio'}</span>
                                             </td>
                                             <td>
-                                                {o.order_items?.map(i => `${i.quantity}x ${i.menu_items?.name}`).join(', ')}
+                                                {o.order_items?.map(i => `${i.quantity}x ${getOrderItemName(i)}`).join(', ')}
                                             </td>
                                             <td style={{ fontWeight: 'bold', color: '#00e676' }}>R {o.total_price}</td>
                                         </tr>
@@ -4990,7 +4997,7 @@ const OrderCard = ({ order, updateOrderStatus, showLocation, setIsVerifyingPin, 
                     <div key={idx} className="kds-item-row">
                         <span className="qty">{item.quantity}x</span>
                         <div className="item-details">
-                            <span className="name">{item.menu_items?.name}</span>
+                            <span className="name">{getOrderItemName(item)}</span>
                             {item.modifiers_json?.custom_notes && (
                                 <span className="modifier">Note: {item.modifiers_json.custom_notes}</span>
                             )}
