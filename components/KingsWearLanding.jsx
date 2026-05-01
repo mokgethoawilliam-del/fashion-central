@@ -236,6 +236,8 @@ function LuxuryHeader() {
 /* ─── Main Landing Page ─── */
 export default function KingsWearLanding() {
   const [vendorId, setVendorId] = useState(null);
+  const [vendorProfile, setVendorProfile] = useState(null);
+  const [testimonials, setTestimonials] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -249,19 +251,38 @@ export default function KingsWearLanding() {
     async function init() {
       const { data } = await supabase
         .from("vendors")
-        .select("id")
+        .select("id, name, branding")
         .or("subdomain_slug.eq.kingswear,subdomain_slug.eq.kings-wear,name.ilike.%kings%wear%")
         .limit(1)
         .single();
       if (data) {
         setVendorId(data.id);
+        setVendorProfile(data);
       } else {
-        const { data: anyVendor } = await supabase.from("vendors").select("id").limit(1).single();
-        if (anyVendor) setVendorId(anyVendor.id);
+        const { data: anyVendor } = await supabase.from("vendors").select("id, name, branding").limit(1).single();
+        if (anyVendor) {
+          setVendorId(anyVendor.id);
+          setVendorProfile(anyVendor);
+        }
       }
     }
     init();
   }, []);
+
+  useEffect(() => {
+    async function loadTestimonials() {
+      if (!vendorId) return;
+      const { data } = await supabase
+        .from("testimonials")
+        .select("*")
+        .eq("vendor_id", vendorId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      if (data) setTestimonials(data);
+    }
+    loadTestimonials();
+  }, [vendorId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -340,6 +361,42 @@ export default function KingsWearLanding() {
     transition: "border-color 0.3s ease",
   };
 
+  const branding = vendorProfile?.branding || {};
+  const contactEmail = branding.contact_email || "bookings@kingswear.co.za";
+  const whatsappNumber = branding.whatsapp_number || branding.whatsapp || "";
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent("Hi, I’d like to book a fitting with Kings Wear.")}`
+    : null;
+  const locationLabel = branding.location_label || branding.city || "Polokwane, Limpopo";
+  const faqItems = [
+    {
+      q: "How do fittings work?",
+      a: "We start with a consultation, take your measurements, discuss your occasion and style direction, then confirm your fitting and production timeline.",
+    },
+    {
+      q: "Do you style weddings and special events?",
+      a: "Yes. We handle groom looks, wedding party styling, matric dances, graduations, red-carpet moments, and premium occasion wear.",
+    },
+    {
+      q: "How much do your garments cost?",
+      a: "Pricing depends on fabric, finish, design complexity, and whether the piece is bespoke or styled from an existing concept. The guide below gives starting prices.",
+    },
+    {
+      q: "How early should I book?",
+      a: "For weddings and major events, booking at least 2 to 4 weeks ahead is safest. For urgent fittings, message early so availability can be confirmed.",
+    },
+  ];
+  const pricingCards = [
+    { title: "Bespoke Suits", price: "From R3 500", copy: "Tailored for events, business, weddings, and personal image upgrades." },
+    { title: "Wedding Styling", price: "From R5 500", copy: "Premium looks for grooms, groomsmen, and standout ceremony styling." },
+    { title: "Fittings & Alterations", price: "From R450", copy: "Refinement, adjustments, and finishing to sharpen the final silhouette." },
+  ];
+  const scrollToSection = (event, selector) => {
+    event.preventDefault();
+    const el = document.querySelector(selector);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div style={{ backgroundColor: "#000", color: "#fff", fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
 
@@ -397,14 +454,11 @@ export default function KingsWearLanding() {
             lineHeight: 1.7,
             fontWeight: 300,
           }}>
-            Bespoke suits &amp; styling crafted with precision by King Wiz
+            Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.
           </p>
           <a
             href="#booking"
-            onClick={(e) => {
-              e.preventDefault();
-              document.querySelector("#booking")?.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={(e) => scrollToSection(e, "#booking")}
             style={{
               border: "1px solid #C9A646",
               padding: "16px 48px",
@@ -420,8 +474,24 @@ export default function KingsWearLanding() {
             onMouseEnter={e => { e.target.style.backgroundColor = "#C9A646"; e.target.style.color = "#000"; }}
             onMouseLeave={e => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#C9A646"; }}
           >
-            Book Your Fitting
+            Book a Fitting
           </a>
+          <div style={{ marginTop: "18px" }}>
+            <a
+              href={whatsappHref || "#contact"}
+              onClick={whatsappHref ? undefined : (e) => scrollToSection(e, "#contact")}
+              target={whatsappHref ? "_blank" : undefined}
+              rel={whatsappHref ? "noreferrer" : undefined}
+              style={{
+                color: "rgba(255,255,255,0.7)",
+                textDecoration: "none",
+                fontSize: "0.9rem",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {whatsappHref ? "Prefer WhatsApp? Start the conversation now." : "Get styled for weddings, events, and elevated everyday looks."}
+            </a>
+          </div>
         </div>
       </section>
 
@@ -460,11 +530,30 @@ export default function KingsWearLanding() {
         </div>
       </section>
 
+      <section style={{ padding: "100px 24px", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+          <p style={sectionHeading}>Pricing Guide</p>
+          <h2 style={sectionTitle}>Starting From</h2>
+          <p style={{ color: "rgba(255,255,255,0.58)", maxWidth: "720px", margin: "0 auto 48px", lineHeight: 1.8 }}>
+            Let clients qualify themselves before they DM. Final quotes still depend on fabric, finish, complexity, and delivery timelines.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "28px" }}>
+            {pricingCards.map((card) => (
+              <div key={card.title} style={{ border: "1px solid rgba(201,166,70,0.2)", background: "rgba(255,255,255,0.02)", padding: "36px 28px", textAlign: "left" }}>
+                <div style={{ color: "#C9A646", fontSize: "0.8rem", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "16px" }}>{card.price}</div>
+                <h3 style={{ fontSize: "1.15rem", marginBottom: "12px", fontWeight: 500, fontFamily: "'Outfit', sans-serif" }}>{card.title}</h3>
+                <p style={{ color: "rgba(255,255,255,0.58)", lineHeight: 1.7, fontSize: "0.94rem" }}>{card.copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* GALLERY */}
       <section id="gallery" style={{ padding: "100px 24px", maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "56px" }}>
           <p style={sectionHeading}>Portfolio</p>
-          <h2 style={sectionTitle}>Gallery</h2>
+          <h2 style={sectionTitle}>Transformations & Looks</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
           {[
@@ -510,18 +599,41 @@ export default function KingsWearLanding() {
         </div>
       </section>
 
+      <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, rgba(201,166,70,0.05), rgba(0,0,0,0))" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+          <p style={sectionHeading}>Client Love</p>
+          <h2 style={sectionTitle}>Testimonials</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "28px", marginTop: "48px" }}>
+            {(testimonials.length > 0 ? testimonials : [
+              { id: "fallback-1", quote: "The fit was clean, the finish was sharp, and the confidence boost was immediate.", customer_name: "Private Client" },
+              { id: "fallback-2", quote: "Professional service, strong communication, and styling that actually made me stand out.", customer_name: "Occasion Wear Client" },
+              { id: "fallback-3", quote: "From fitting to final handover, everything felt premium and well handled.", customer_name: "Wedding Client" },
+            ]).map((item) => (
+              <div key={item.id} style={{ textAlign: "left", border: "1px solid rgba(255,255,255,0.08)", padding: "32px 28px", background: "rgba(255,255,255,0.02)" }}>
+                <p style={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.85, fontSize: "0.96rem", marginBottom: "20px" }}>
+                  "{item.quote}"
+                </p>
+                <div style={{ color: "#C9A646", fontSize: "0.82rem", letterSpacing: "0.16em", textTransform: "uppercase" }}>
+                  {item.customer_name || "Client"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Divider */}
       <div style={{ maxWidth: "120px", height: "1px", background: "rgba(201,166,70,0.3)", margin: "0 auto" }} />
 
       {/* BOOKING */}
       <section id="booking" style={{ padding: "100px 24px", maxWidth: "520px", margin: "0 auto", textAlign: "center" }}>
         <p style={sectionHeading}>Appointments</p>
-        <h2 style={sectionTitle}>Book Your Fitting</h2>
+        <h2 style={sectionTitle}>Book a Fitting / Get Styled</h2>
 
         {submitStatus === "success" ? (
           <div style={{ border: "1px solid rgba(201,166,70,0.3)", padding: "48px 32px" }}>
             <p style={{ color: "#C9A646", fontSize: "1.1rem", marginBottom: "12px", letterSpacing: "0.1em" }}>✓ Booking Submitted</p>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9rem", fontWeight: 300 }}>King Wiz will be in touch shortly to confirm your fitting.</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9rem", fontWeight: 300 }}>The studio will be in touch shortly to confirm your fitting, measurements, and next steps.</p>
             <button
               onClick={() => setSubmitStatus("idle")}
               style={{ marginTop: "28px", border: "1px solid #C9A646", padding: "12px 32px", background: "transparent", color: "#C9A646", cursor: "pointer", fontSize: "0.8rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 500, transition: "all 0.3s ease" }}
@@ -558,7 +670,7 @@ export default function KingsWearLanding() {
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
             />
             <textarea
-              rows={4} placeholder="What do you need?"
+              rows={4} placeholder="Tell us about the occasion, garment type, preferred fitting date, measurements, or styling direction."
               value={formData.message}
               onChange={e => setFormData({ ...formData, message: e.target.value })}
               style={{ ...inputStyle, resize: "vertical" }}
@@ -587,14 +699,35 @@ export default function KingsWearLanding() {
                 transition: "opacity 0.3s ease",
               }}
             >
-              {isSubmitting ? "Submitting..." : "Submit Booking"}
+              {isSubmitting ? "Submitting..." : "Submit Booking Request"}
             </button>
           </form>
         )}
 
-        <p style={{ color: "rgba(255,255,255,0.4)", marginTop: "28px", fontSize: "0.85rem", fontWeight: 300 }}>
-          Or message directly on WhatsApp
-        </p>
+        <div style={{ color: "rgba(255,255,255,0.4)", marginTop: "28px", fontSize: "0.85rem", fontWeight: 300 }}>
+          {whatsappHref ? (
+            <a href={whatsappHref} target="_blank" rel="noreferrer" style={{ color: "#C9A646", textDecoration: "none" }}>
+              Or message directly on WhatsApp
+            </a>
+          ) : (
+            "Or message directly on WhatsApp"
+          )}
+        </div>
+      </section>
+
+      <section style={{ padding: "100px 24px", maxWidth: "980px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "48px" }}>
+          <p style={sectionHeading}>Before You DM</p>
+          <h2 style={sectionTitle}>Frequently Asked Questions</h2>
+        </div>
+        <div style={{ display: "grid", gap: "18px" }}>
+          {faqItems.map((item) => (
+            <div key={item.q} style={{ border: "1px solid rgba(255,255,255,0.08)", padding: "24px 24px 20px", background: "rgba(255,255,255,0.02)" }}>
+              <h3 style={{ marginBottom: "10px", fontFamily: "'Outfit', sans-serif", fontSize: "1.05rem", fontWeight: 500 }}>{item.q}</h3>
+              <p style={{ color: "rgba(255,255,255,0.58)", lineHeight: 1.8, margin: 0 }}>{item.a}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* FOOTER */}
@@ -604,8 +737,32 @@ export default function KingsWearLanding() {
         borderTop: "1px solid rgba(255,255,255,0.06)",
       }}>
         <p style={{ color: "#C9A646", fontSize: "0.75rem", letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: "16px", fontWeight: 500 }}>
-          Kings Wear Clothing
+          {vendorProfile?.name || "Kings Wear Clothing"}
         </p>
+        <div style={{ display: "grid", gap: "8px", color: "rgba(255,255,255,0.46)", fontSize: "0.92rem", marginBottom: "24px" }}>
+          <div>{locationLabel}</div>
+          <div>{contactEmail}</div>
+          {whatsappNumber && <div>WhatsApp: {whatsappNumber}</div>}
+        </div>
+        <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+          <a
+            href="#booking"
+            onClick={(e) => scrollToSection(e, "#booking")}
+            style={{ border: "1px solid #C9A646", padding: "12px 24px", color: "#C9A646", textDecoration: "none", textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.16em" }}
+          >
+            Book a Fitting
+          </a>
+          {whatsappHref && (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              style={{ border: "1px solid rgba(255,255,255,0.16)", padding: "12px 24px", color: "#fff", textDecoration: "none", textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.16em" }}
+            >
+              WhatsApp
+            </a>
+          )}
+        </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.85rem", fontWeight: 300 }}>
           Follow on Instagram &nbsp;·&nbsp; Contact via WhatsApp
         </p>

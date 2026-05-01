@@ -135,12 +135,12 @@ export default function AdminDashboard({ session }) {
     const [aiActionLoading, setAiActionLoading] = useState(false);
     const aiChatEndRef = React.useRef(null);
     const userRole = profile?.role || 'owner';
-    const isInventoryStaff = userRole === 'inventory_staff';
-    const allowedTabs = isInventoryStaff ? ['inventory', 'ai', 'help'] : null;
+    const isStaff = userRole === 'staff';
+    const allowedTabs = isStaff ? ['inventory', 'ai', 'help'] : null;
 
-    const defaultAiGreeting = isInventoryStaff
-        ? 'Hello! I am your Stock Copilot. I can help you log refills, deduct wastage, and point out stock risks without touching billing or private owner settings.'
-        : 'Hello! I am your AI Manager. I can help with bookings, orders, stock updates, inventory risks, revenue, and day-to-day operations across your shop.';
+    const defaultAiGreeting = isStaff
+        ? 'Hello! I am your Studio Copilot. I can help you log inventory, and point out stock risks.'
+        : 'Hello! I am your AI Manager. I can help with bookings, orders, and day-to-day operations across your studio.';
 
     useEffect(() => {
         aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -290,7 +290,7 @@ export default function AdminDashboard({ session }) {
         if (!currentVendorId) return;
         fetchInitialData();
 
-        if (isInventoryStaff) {
+        if (isStaff) {
             return;
         }
 
@@ -397,7 +397,7 @@ export default function AdminDashboard({ session }) {
             supabase.removeChannel(channel);
             supabase.removeChannel(chatChannel);
         };
-    }, [currentVendorId, isInventoryStaff]);
+    }, [currentVendorId, isStaff]);
 
     // Auto-Lock Inactivity Timer for the Vault
     useEffect(() => {
@@ -444,7 +444,7 @@ export default function AdminDashboard({ session }) {
         if (!currentVendorId) return;
         setIsRefreshing(true);
         try {
-            if (isInventoryStaff) {
+            if (isStaff) {
                 const { data: publicVendorData } = await supabase
                     .from('public_vendors')
                     .select('id, name, branding')
@@ -1408,7 +1408,7 @@ export default function AdminDashboard({ session }) {
         const status = vendorConfig?.subscription_status;
         const isRestricted = (isExpired && status !== 'active') || status === 'past_due' || status === 'cancelled';
         
-        const premiumTabs = ['kds', 'inventory', 'logistics', 'cms', 'ai'];
+        const premiumTabs = ['orders', 'inventory', 'logistics', 'cms', 'ai'];
         
         if (isRestricted && premiumTabs.includes(tabId)) {
             setShowGateModal(true);
@@ -1435,9 +1435,9 @@ export default function AdminDashboard({ session }) {
         <div style={{ background: '#0f172a', color: '#fff', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem', textAlign: 'center', padding: '2rem' }}>
             <div className="loading-spinner"></div>
             <div>
-                <h2 style={{ marginBottom: '0.5rem' }}>Configuring your kitchen...</h2>
+                <h2 style={{ marginBottom: '0.5rem' }}>Configuring your studio...</h2>
                 <p style={{ color: '#94a3b8', maxWidth: '400px', fontSize: '0.9rem' }}>
-                    If this takes more than 10 seconds, please ensure you have run the <b>master-setup.sql</b> script in your Supabase dashboard.
+                    Setting up your stylist dashboard. This usually takes just a few seconds.
                 </p>
             </div>
             
@@ -1619,18 +1619,18 @@ export default function AdminDashboard({ session }) {
     };
 
     const sidebarNavItems = [
-        { id: 'overview', label: 'Overview', icon: <Icons.Dashboard /> },
+        { id: 'overview', label: 'Studio Overview', icon: <Icons.Dashboard /> },
         { id: 'ai', label: 'AI Manager', icon: <Icons.Brain />, accent: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.2))', borderColor: 'rgba(139,92,246,0.5)' },
-        { id: 'kds', label: 'Live Kitchen', icon: <Icons.Kitchen /> },
-        { id: 'support', label: 'Live Chat', icon: <Icons.Chat /> },
-        { id: 'reservations', label: 'Reservations', icon: <Icons.Calendar /> },
-        { id: 'history', label: 'History Vault', icon: <Icons.History /> },
-        { id: 'finances', label: 'Finances', icon: <Icons.Finance /> },
-        { id: 'inventory', label: 'Inventory', icon: <Icons.Inventory /> },
-        { id: 'customers', label: 'Customers', icon: <Icons.Users /> },
+        { id: 'kds', label: 'Client Orders', icon: <Icons.Studio /> },
+        { id: 'support', label: 'Client Chat', icon: <Icons.Chat /> },
+        { id: 'reservations', label: 'Appointments', icon: <Icons.Calendar /> },
+        { id: 'history', label: 'Client History', icon: <Icons.History /> },
+        { id: 'finances', label: 'Payments', icon: <Icons.Finance /> },
+        { id: 'inventory', label: 'Materials', icon: <Icons.Inventory /> },
+        { id: 'customers', label: 'Clients', icon: <Icons.Users /> },
         { id: 'testimonials', label: 'Testimonials', icon: <Icons.Testimonials /> },
-        { id: 'logistics', label: 'Logistics', icon: <Icons.Logistics /> },
-        { id: 'cms', label: 'CMS Settings', icon: <Icons.Settings /> },
+        { id: 'logistics', label: 'Operations', icon: <Icons.Logistics /> },
+        { id: 'cms', label: 'Brand & Site', icon: <Icons.Settings /> },
         { id: 'help', label: 'Help Center', icon: <Icons.Help /> },
     ];
 
@@ -2080,14 +2080,14 @@ export default function AdminDashboard({ session }) {
                 <header className="content-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <h1 style={{ fontSize: '1.25rem', margin: 0, fontWeight: '700' }}>
-                            {activeTab === 'overview' && ' Dashboard Overview'}
-                            {activeTab === 'kds' && ' Live Kitchen'}
-                            {activeTab === 'support' && ' Customer Support'}
-                            {activeTab === 'history' && ' Order History'}
-                            {activeTab === 'finances' && ' Financial Management'}
-                            {activeTab === 'inventory' && ' Stock Control'}
-                            {activeTab === 'logistics' && ' Logistics & Delivery'}
-                            {activeTab === 'cms' && ' CMS Settings'}
+                            {activeTab === 'overview' && ' Studio Overview'}
+                            {activeTab === 'kds' && ' Client Orders'}
+                            {activeTab === 'support' && ' Client Support'}
+                            {activeTab === 'history' && ' Client History'}
+                            {activeTab === 'finances' && ' Payments & Revenue'}
+                            {activeTab === 'inventory' && ' Materials & Stock'}
+                            {activeTab === 'logistics' && ' Operations'}
+                            {activeTab === 'cms' && ' Brand & Site Settings'}
                             {activeTab === 'help' && ' Support Center'}
                         </h1>
                         {activeTab === 'kds' && <span style={{ color: '#00e676', fontWeight: 'bold' }}>{liveTime}</span>}
@@ -2194,7 +2194,7 @@ export default function AdminDashboard({ session }) {
                                         <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.8rem' }}>{session?.user?.email}</p>
                                     </div>
                                     <div style={{ padding: '0.5rem' }}>
-                                        {!isInventoryStaff && (
+                                        {!isStaff && (
                                             <>
                                                 <button 
                                                     onClick={() => {
@@ -2225,7 +2225,7 @@ export default function AdminDashboard({ session }) {
                                         >
                                             Logout
                                         </button>
-                                        {!isInventoryStaff && (
+                                        {!isStaff && (
                                             <button 
                                                 onClick={() => setShowDeleteModal(true)}
                                                 style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', borderRadius: '8px', fontSize: '0.8rem' }}
@@ -3208,9 +3208,9 @@ export default function AdminDashboard({ session }) {
                     <div style={{ background: '#0f172a', border: '1px solid rgba(139,92,246,0.24)', borderRadius: '16px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <div>
                             <div style={{ color: '#a78bfa', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>AI Manager</div>
-                            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{isInventoryStaff ? 'Stock Copilot' : 'Business Copilot'}</h2>
+                            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{isStaff ? 'Stock Copilot' : 'Business Copilot'}</h2>
                             <p style={{ color: '#94a3b8', fontSize: '0.92rem', lineHeight: '1.6', marginTop: '0.75rem' }}>
-                                {isInventoryStaff
+                                {isStaff
                                     ? 'Use plain language to update stock, log received items, track shortages, and spot what needs restocking next.'
                                     : 'Ask about bookings, orders, revenue, stock pressure, branch performance, menu performance, or what needs attention next.'}
                             </p>
@@ -3218,13 +3218,13 @@ export default function AdminDashboard({ session }) {
 
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isInventoryStaff ? 'Tracked Ingredients' : 'Active Orders'}</div>
-                                <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>{isInventoryStaff ? ingredients.length : orders.length}</div>
+                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Tracked Ingredients' : 'Active Orders'}</div>
+                                <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>{isStaff ? ingredients.length : orders.length}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isInventoryStaff ? 'Out of Stock' : 'Ready for Collection'}</div>
+                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Out of Stock' : 'Ready for Collection'}</div>
                                 <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>
-                                    {isInventoryStaff ? ingredients.filter(ing => Number(ing.current_stock ?? 0) <= 0).length : orders.filter(o => o.status === 'ready').length}
+                                    {isStaff ? ingredients.filter(ing => Number(ing.current_stock ?? 0) <= 0).length : orders.filter(o => o.status === 'ready').length}
                                 </div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
@@ -3236,7 +3236,7 @@ export default function AdminDashboard({ session }) {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                            {(isInventoryStaff ? staffAiPrompts : [
+                            {(isStaff ? staffAiPrompts : [
                                 'What should I focus on right now?',
                                 'Which orders are stuck?',
                                 'How many bookings do I have this week?',
@@ -3259,16 +3259,16 @@ export default function AdminDashboard({ session }) {
                     <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '70vh', overflow: 'hidden' }}>
                         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                             <div>
-                                <div style={{ fontWeight: '700', fontSize: '1rem' }}>{isInventoryStaff ? 'Inventory Chat' : 'Operations Chat'}</div>
+                                <div style={{ fontWeight: '700', fontSize: '1rem' }}>{isStaff ? 'Inventory Chat' : 'Operations Chat'}</div>
                                 <div style={{ color: '#64748b', fontSize: '0.84rem' }}>
-                                    {isInventoryStaff ? 'Grounded in your own ingredient and stock data only' : 'Grounded in your own bookings, orders, stock, menu, and expense data'}
+                                    {isStaff ? 'Grounded in your own ingredient and stock data only' : 'Grounded in your own bookings, orders, stock, menu, and expense data'}
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setAiMessages([{
                                     role: 'assistant',
-                                    content: isInventoryStaff
+                                    content: isStaff
                                         ? 'Hello! I am your Stock Copilot. I can help you log refills, deduct wastage, and point out stock risks without touching billing or private owner settings.'
                                         : 'Hello! I am your AI Manager. I can help with bookings, orders, inventory, revenue, reports, and what needs attention in your business right now.'
                                 }])}
@@ -3394,7 +3394,7 @@ export default function AdminDashboard({ session }) {
                                 className="kds-input"
                                 value={aiInput}
                                 onChange={(e) => setAiInput(e.target.value)}
-                                placeholder={isInventoryStaff ? 'Try: I have just refilled 54 slices of cheese...' : 'Ask about bookings, revenue, orders, stock, reports, or support pressure...'}
+                                placeholder={isStaff ? 'Try: I have just refilled 54 slices of cheese...' : 'Ask about bookings, revenue, orders, stock, reports, or support pressure...'}
                                 style={{ flex: 1 }}
                             />
                             <button type="submit" className="btn-primary" disabled={aiLoading || !aiInput.trim()} style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', color: '#fff', minWidth: '120px' }}>
@@ -3820,7 +3820,7 @@ export default function AdminDashboard({ session }) {
                             <button className="btn-secondary" onClick={fetchInitialData} disabled={isRefreshing} style={isRefreshing ? { opacity: 0.7, cursor: 'not-allowed' } : {}}>
                                 {isRefreshing ? '↻ Refreshing...' : '↻ Refresh'}
                             </button>
-                            {!isInventoryStaff && (
+                            {!isStaff && (
                                 <button className="btn-primary" onClick={() => setIsAddingIngredient(true)}>
                                     + Add Ingredient
                                 </button>
@@ -3828,7 +3828,7 @@ export default function AdminDashboard({ session }) {
                         </div>
                     </div>
 
-                    {isInventoryStaff && (
+                    {isStaff && (
                         <div style={{ marginBottom: '1.25rem', padding: '0.9rem 1rem', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.25)', background: 'rgba(59,130,246,0.08)', color: '#bfdbfe' }}>
                             Staff stock mode is locked to viewing inventory here. Use <strong>AI Manager</strong> to log refills, wastage, and stock adjustments.
                         </div>
@@ -3934,7 +3934,7 @@ export default function AdminDashboard({ session }) {
                                                 }
                                             </td>
                                             <td>
-                                                {isInventoryStaff ? (
+                                                {isStaff ? (
                                                     <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Use AI Manager</span>
                                                 ) : (
                                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -4945,7 +4945,12 @@ const OrderCard = ({ order, updateOrderStatus, showLocation, setIsVerifyingPin, 
             </div>
             <div className="kds-customer-info">
                 <p><strong>{order.customer_name}</strong></p>
-                <p>WA: {order.customer_phone}</p>
+                <p>Contact: {order.customer_phone} {order.customer_email && `| ${order.customer_email}`}</p>
+                {order.source && (
+                    <span style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.15rem 0.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#cbd5e1' }}>
+                        Source: {order.source}
+                    </span>
+                )}
                 {showLocation && <p className="kds-loc"> {order.locations?.name}</p>}
 
                 {isDelivery && order.delivery_address && (
@@ -4987,26 +4992,18 @@ const OrderCard = ({ order, updateOrderStatus, showLocation, setIsVerifyingPin, 
             </div>
 
             <div className="kds-actions">
-                {order.status === 'paid' && (
-                    <button className="btn-kds btn-prep" onClick={() => updateOrderStatus(order.id, 'preparing')}>
-                        Start Preparing
-                    </button>
-                )}
-                {order.status === 'preparing' && (
-                    <button className="btn-kds btn-ready" onClick={() => updateOrderStatus(order.id, 'ready')}>
-                        Mark Ready
-                    </button>
-                )}
-                {order.status === 'ready' && (
-                    <button 
-                        className="btn-kds btn-complete" 
-                        onClick={handleReadyCompletion}
-                    >
-                        {isDelivery ? 'Mark Delivered' : 'Mark Collected'}
-                    </button>
-                )}
+                <select 
+                     value={order.status}
+                     onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                     style={{ padding: '0.6rem', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '6px', width: '100%', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+                >
+                    <option value="paid">NEW</option>
+                    <option value="contacted">CONTACTED</option>
+                    <option value="confirmed">CONFIRMED</option>
+                    <option value="completed">COMPLETED</option>
+                    <option value="cancelled">CANCELLED</option>
+                </select>
             </div>
         </div>
     );
 };
-
