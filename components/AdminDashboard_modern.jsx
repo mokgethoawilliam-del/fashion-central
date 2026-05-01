@@ -357,7 +357,6 @@ export default function AdminDashboard({ session }) {
                         .from('orders')
                         .select(`
                             *,
-                            locations (name),
                             order_items (
                                 quantity,
                                 modifiers_json,
@@ -489,14 +488,20 @@ export default function AdminDashboard({ session }) {
             const { data: vData } = await supabase.from('vendors').select('*').eq('id', currentVendorId).single();
             if (vData) setVendorConfig(vData);
 
-            const { data: locData } = await supabase.from('locations').select('*').eq('vendor_id', currentVendorId);
-            if (locData) setLocations(locData);
+            let locData = [];
+            const { data: rawLocData, error: locErr } = await supabase.from('locations').select('*').eq('vendor_id', currentVendorId);
+            if (locErr) {
+                console.warn('Locations table unavailable for this project yet:', locErr.message);
+                setLocations([]);
+            } else {
+                locData = rawLocData || [];
+                setLocations(locData);
+            }
 
             const { data: orderData, error: orderErr } = await supabase
                 .from('orders')
                 .select(`
                     *,
-                    locations (name),
                     order_items (
                         quantity,
                         modifiers_json,
@@ -565,7 +570,7 @@ export default function AdminDashboard({ session }) {
                 setChats(chatData);
             }
 
-            const { data: reservationData } = await supabase
+            const { data: reservationData, error: reservationErr } = await supabase
                 .from('reservations')
                 .select(`
                     *,
@@ -575,7 +580,10 @@ export default function AdminDashboard({ session }) {
                 .order('reservation_date', { ascending: true })
                 .order('reservation_time', { ascending: true });
 
-            if (reservationData) {
+            if (reservationErr) {
+                console.warn('Reservations table unavailable for this project yet:', reservationErr.message);
+                setReservations([]);
+            } else if (reservationData) {
                 setReservations(reservationData);
             }
 
