@@ -360,7 +360,14 @@ export default function KingsWearLanding() {
           position: "relative",
         }}
       >
-        <div style={{ maxWidth: "700px", padding: "0 24px" }}>
+        <div style={{
+          maxWidth: "700px",
+          padding: "48px 40px",
+          backgroundColor: "rgba(0,0,0,0.65)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          borderRadius: "8px",
+        }}>
           <p style={{
             fontSize: "0.75rem",
             letterSpacing: "0.4em",
