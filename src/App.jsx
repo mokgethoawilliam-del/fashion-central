@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
-import VendorLandingPage from '../components/VendorLandingPage'
 import AdminDashboard from '../components/AdminDashboard_modern'
 import Login from '../components/Login'
 import RegisterShop from '../components/RegisterShop'
@@ -52,7 +51,7 @@ function App() {
                     } />
 
                     {/* Dynamic Vendor Route */}
-                    <Route path="/v/:vendorSlug" element={<VendorLandingPage />} />
+                    <Route path="/v/:vendorSlug" element={<KingsWearLanding />} />
 
                     {/* VulaHub Platform Landing Page */}
                     <Route path="/" element={<PlatformHome />} /> 
@@ -61,7 +60,8 @@ function App() {
                     <Route path="/legal" element={<LegalTerms />} /> 
 
                     {/* Kings Wear Landing Page */}
-                    <Route path="/kingswear" element={<KingsWearLanding />} /> 
+                    <Route path="/kingswear" element={<KingsWearLanding />} />
+                    <Route path="/:vendorSlug" element={<KingsWearLanding />} />
 
                     {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />

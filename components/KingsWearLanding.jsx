@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { supabase } from "../src/supabaseClient";
 
 /* ─── Luxury Header ─── */
@@ -244,6 +245,7 @@ function LuxuryHeader({ vendorName, branding, onNavClick }) {
 
 /* ─── Main Landing Page ─── */
 export default function KingsWearLanding() {
+  const { vendorSlug } = useParams();
   const [vendorId, setVendorId] = useState(null);
   const [vendorProfile, setVendorProfile] = useState(null);
   const [testimonials, setTestimonials] = useState([]);
@@ -259,7 +261,7 @@ export default function KingsWearLanding() {
 
   useEffect(() => {
     async function init() {
-      const pathSlug = window.location.pathname.replace(/^\/+/, "").split("/")[0] || "kingswear";
+      const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kingswear";
       let { data } = await supabase
         .from("public_vendors")
         .select("*")
@@ -290,7 +292,7 @@ export default function KingsWearLanding() {
       }
     }
     init();
-  }, []);
+  }, [vendorSlug]);
 
   useEffect(() => {
     async function loadSupportingData() {
