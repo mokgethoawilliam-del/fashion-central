@@ -122,6 +122,43 @@ export default function AdminDashboard({ session }) {
     // Phase 16: Customers & Testimonials
     const [testimonials, setTestimonials] = useState([]);
     const [reservations, setReservations] = useState([]);
+    const [studioClients, setStudioClients] = useState([]);
+    const [studioAppointments, setStudioAppointments] = useState([]);
+    const [savingClient, setSavingClient] = useState(false);
+    const [savingAppointment, setSavingAppointment] = useState(false);
+    const [clientForm, setClientForm] = useState({
+        id: null,
+        full_name: '',
+        phone: '',
+        email: '',
+        instagram_handle: '',
+        preferred_contact_method: 'whatsapp',
+        payment_status: 'inquiry',
+        status: 'lead',
+        notes: '',
+        measurements: ''
+    });
+    const [appointmentForm, setAppointmentForm] = useState({
+        id: null,
+        client_id: '',
+        appointment_type: 'consultation',
+        status: 'pending',
+        appointment_date: '',
+        appointment_time: '',
+        fitting_date: '',
+        fitting_time: '',
+        look_type: '',
+        garment_type: '',
+        budget_range: '',
+        payment_status: 'inquiry',
+        deposit_amount: '',
+        balance_amount: '',
+        contact_name: '',
+        contact_phone: '',
+        contact_email: '',
+        special_requests: '',
+        internal_notes: ''
+    });
     const [showGateModal, setShowGateModal] = useState(false);
 
     // Phase 17: AI Manager
@@ -491,6 +528,8 @@ export default function AdminDashboard({ session }) {
                 setChats([]);
                 setTestimonials([]);
                 setReservations([]);
+                setStudioClients([]);
+                setStudioAppointments([]);
                 return;
             }
 
@@ -602,6 +641,33 @@ export default function AdminDashboard({ session }) {
             
             if (testData) {
                 setTestimonials(testData);
+            }
+
+            const { data: clientData, error: clientErr } = await supabase
+                .from('stylist_clients')
+                .select('*')
+                .eq('vendor_id', currentVendorId)
+                .order('created_at', { ascending: false });
+
+            if (clientErr) {
+                console.warn('Stylist clients table unavailable for this project yet:', clientErr.message);
+                setStudioClients([]);
+            } else if (clientData) {
+                setStudioClients(clientData);
+            }
+
+            const { data: appointmentData, error: appointmentErr } = await supabase
+                .from('stylist_appointments')
+                .select('*')
+                .eq('vendor_id', currentVendorId)
+                .order('appointment_date', { ascending: true })
+                .order('appointment_time', { ascending: true });
+
+            if (appointmentErr) {
+                console.warn('Stylist appointments table unavailable for this project yet:', appointmentErr.message);
+                setStudioAppointments([]);
+            } else if (appointmentData) {
+                setStudioAppointments(appointmentData);
             }
 
         } catch (err) {
@@ -966,6 +1032,10 @@ export default function AdminDashboard({ session }) {
             return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
         })
         : historyOrders;
+
+    const crmClients = studioClients;
+    const upcomingAppointments = [...studioAppointments]
+        .sort((a, b) => new Date(`${a.appointment_date}T${a.appointment_time || '00:00'}`) - new Date(`${b.appointment_date}T${b.appointment_time || '00:00'}`));
 
     // Phase 7: History Vault PDF Export
     const exportPDF = () => {
@@ -1620,6 +1690,230 @@ export default function AdminDashboard({ session }) {
         }
     };
 
+    const resetClientForm = () => {
+        setClientForm({
+            id: null,
+            full_name: '',
+            phone: '',
+            email: '',
+            instagram_handle: '',
+            preferred_contact_method: 'whatsapp',
+            payment_status: 'inquiry',
+            status: 'lead',
+            notes: '',
+            measurements: ''
+        });
+    };
+
+    const resetAppointmentForm = () => {
+        setAppointmentForm({
+            id: null,
+            client_id: '',
+            appointment_type: 'consultation',
+            status: 'pending',
+            appointment_date: '',
+            appointment_time: '',
+            fitting_date: '',
+            fitting_time: '',
+            look_type: '',
+            garment_type: '',
+            budget_range: '',
+            payment_status: 'inquiry',
+            deposit_amount: '',
+            balance_amount: '',
+            contact_name: '',
+            contact_phone: '',
+            contact_email: '',
+            special_requests: '',
+            internal_notes: ''
+        });
+    };
+
+    const parseMeasurementsInput = (input) => {
+        const raw = String(input || '').trim();
+        if (!raw) return {};
+        try {
+            const parsed = JSON.parse(raw);
+            return typeof parsed === 'object' && parsed !== null ? parsed : {};
+        } catch (_err) {
+            const pairs = raw
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line) => {
+                    const [key, ...valueParts] = line.split(':');
+                    if (!key || valueParts.length === 0) return null;
+                    return [key.trim(), valueParts.join(':').trim()];
+                })
+                .filter(Boolean);
+            return Object.fromEntries(pairs);
+        }
+    };
+
+    const saveStudioClient = async (e) => {
+        e.preventDefault();
+        if (!currentVendorId || !clientForm.full_name.trim()) return;
+        setSavingClient(true);
+        try {
+            const payload = {
+                vendor_id: currentVendorId,
+                full_name: clientForm.full_name.trim(),
+                phone: clientForm.phone.trim() || null,
+                email: clientForm.email.trim() || null,
+                instagram_handle: clientForm.instagram_handle.trim() || null,
+                preferred_contact_method: clientForm.preferred_contact_method,
+                payment_status: clientForm.payment_status,
+                status: clientForm.status,
+                notes: clientForm.notes.trim() || null,
+                measurements: parseMeasurementsInput(clientForm.measurements)
+            };
+
+            let query = supabase.from('stylist_clients');
+            if (clientForm.id) {
+                query = query.update(payload).eq('id', clientForm.id);
+            } else {
+                query = query.insert(payload);
+            }
+
+            const { data, error } = await query.select().single();
+            if (error) throw error;
+
+            setStudioClients((current) => {
+                const rest = current.filter((item) => item.id !== data.id);
+                return [data, ...rest];
+            });
+
+            if (!clientForm.id) {
+                setAppointmentForm((current) => ({
+                    ...current,
+                    client_id: data.id,
+                    contact_name: current.contact_name || data.full_name || '',
+                    contact_phone: current.contact_phone || data.phone || '',
+                    contact_email: current.contact_email || data.email || ''
+                }));
+            }
+
+            resetClientForm();
+        } catch (err) {
+            alert('Could not save client: ' + err.message);
+        } finally {
+            setSavingClient(false);
+        }
+    };
+
+    const saveStudioAppointment = async (e) => {
+        e.preventDefault();
+        if (!currentVendorId || !appointmentForm.contact_name.trim() || !appointmentForm.contact_phone.trim() || !appointmentForm.appointment_date) return;
+        setSavingAppointment(true);
+        try {
+            const payload = {
+                vendor_id: currentVendorId,
+                client_id: appointmentForm.client_id || null,
+                appointment_type: appointmentForm.appointment_type,
+                status: appointmentForm.status,
+                appointment_date: appointmentForm.appointment_date,
+                appointment_time: appointmentForm.appointment_time || null,
+                fitting_date: appointmentForm.fitting_date || null,
+                fitting_time: appointmentForm.fitting_time || null,
+                look_type: appointmentForm.look_type.trim() || null,
+                garment_type: appointmentForm.garment_type.trim() || null,
+                budget_range: appointmentForm.budget_range.trim() || null,
+                payment_status: appointmentForm.payment_status,
+                deposit_amount: appointmentForm.deposit_amount === '' ? 0 : Number(appointmentForm.deposit_amount || 0),
+                balance_amount: appointmentForm.balance_amount === '' ? 0 : Number(appointmentForm.balance_amount || 0),
+                contact_name: appointmentForm.contact_name.trim(),
+                contact_phone: appointmentForm.contact_phone.trim(),
+                contact_email: appointmentForm.contact_email.trim() || null,
+                special_requests: appointmentForm.special_requests.trim() || null,
+                internal_notes: appointmentForm.internal_notes.trim() || null,
+                source: 'admin_dashboard'
+            };
+
+            let query = supabase.from('stylist_appointments');
+            if (appointmentForm.id) {
+                query = query.update(payload).eq('id', appointmentForm.id);
+            } else {
+                query = query.insert(payload);
+            }
+
+            const { data, error } = await query.select().single();
+            if (error) throw error;
+
+            setStudioAppointments((current) => {
+                const rest = current.filter((item) => item.id !== data.id);
+                return [...rest, data].sort((a, b) => new Date(`${a.appointment_date}T${a.appointment_time || '00:00'}`) - new Date(`${b.appointment_date}T${b.appointment_time || '00:00'}`));
+            });
+
+            if (data.client_id) {
+                setStudioClients((current) => current.map((client) => client.id === data.client_id
+                    ? { ...client, last_appointment_at: data.appointment_date }
+                    : client
+                ));
+            }
+
+            resetAppointmentForm();
+        } catch (err) {
+            alert('Could not save appointment: ' + err.message);
+        } finally {
+            setSavingAppointment(false);
+        }
+    };
+
+    const updateStudioAppointmentStatus = async (appointmentId, nextStatus) => {
+        try {
+            const { error } = await supabase
+                .from('stylist_appointments')
+                .update({ status: nextStatus })
+                .eq('id', appointmentId);
+
+            if (error) throw error;
+            setStudioAppointments((current) => current.map((item) => item.id === appointmentId ? { ...item, status: nextStatus } : item));
+        } catch (err) {
+            alert('Could not update appointment: ' + err.message);
+        }
+    };
+
+    const startEditClient = (client) => {
+        setClientForm({
+            id: client.id,
+            full_name: client.full_name || '',
+            phone: client.phone || '',
+            email: client.email || '',
+            instagram_handle: client.instagram_handle || '',
+            preferred_contact_method: client.preferred_contact_method || 'whatsapp',
+            payment_status: client.payment_status || 'inquiry',
+            status: client.status || 'lead',
+            notes: client.notes || '',
+            measurements: JSON.stringify(client.measurements || {}, null, 2)
+        });
+        handleTabClick('customers');
+    };
+
+    const startEditAppointment = (appointment) => {
+        setAppointmentForm({
+            id: appointment.id,
+            client_id: appointment.client_id || '',
+            appointment_type: appointment.appointment_type || 'consultation',
+            status: appointment.status || 'pending',
+            appointment_date: appointment.appointment_date || '',
+            appointment_time: appointment.appointment_time || '',
+            fitting_date: appointment.fitting_date || '',
+            fitting_time: appointment.fitting_time || '',
+            look_type: appointment.look_type || '',
+            garment_type: appointment.garment_type || '',
+            budget_range: appointment.budget_range || '',
+            payment_status: appointment.payment_status || 'inquiry',
+            deposit_amount: appointment.deposit_amount ?? '',
+            balance_amount: appointment.balance_amount ?? '',
+            contact_name: appointment.contact_name || '',
+            contact_phone: appointment.contact_phone || '',
+            contact_email: appointment.contact_email || '',
+            special_requests: appointment.special_requests || '',
+            internal_notes: appointment.internal_notes || ''
+        });
+        handleTabClick('reservations');
+    };
+
     const confirmAction = async (message, confirmLabel = 'Delete') => {
         if (window.__vulahubConfirm) {
             return window.__vulahubConfirm({
@@ -2261,48 +2555,48 @@ export default function AdminDashboard({ session }) {
                                     <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Includes all Paid/Completed orders today</span>
                                 </div>
                                 <div className="finances-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Kitchen Load</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Upcoming Appointments</span>
                                     <h2 style={{ fontSize: '2.5rem', margin: 0, color: '#f59e0b' }}>
-                                        {orders.filter(o => ['paid', 'preparing'].includes(o.status)).length}
+                                        {upcomingAppointments.filter((item) => ['pending', 'confirmed', 'in_progress'].includes(item.status)).length}
                                     </h2>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Orders currently being prepared</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Consultations, fittings, and active client sessions</span>
                                 </div>
                                 <div className="finances-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Ready for Pickup</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Clients</span>
                                     <h2 style={{ fontSize: '2.5rem', margin: 0, color: '#10b981' }}>
-                                        {orders.filter(o => o.status === 'ready').length}
+                                        {crmClients.filter((client) => client.status !== 'archived').length}
                                     </h2>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Orders waiting for the customer</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Leads, active clients, and VIPs currently on your book</span>
                                 </div>
                                 <div className="finances-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Inventory Health</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Payments Requiring Follow-up</span>
                                     <h2 style={{ fontSize: '2.5rem', margin: 0, color: ingredients.filter(i => (parseFloat(i.current_stock) || 0) <= (parseFloat(i.low_stock_threshold) || 10)).length > 0 ? '#ef4444' : '#00e676' }}>
-                                        {ingredients.filter(i => (parseFloat(i.current_stock) || 0) <= (parseFloat(i.low_stock_threshold) || 10)).length}
+                                        {crmClients.filter((client) => ['deposit_pending', 'balance_pending', 'overdue'].includes(client.payment_status)).length}
                                     </h2>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Low stock items requiring attention</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Deposits, balances, or overdue client accounts</span>
                                 </div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
                                 <div className="finances-card">
-                                    <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>Recent Kitchen Activity</h3>
-                                    {orders.slice(0, 8).map(o => (
+                                    <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>Upcoming Fittings & Consultations</h3>
+                                    {upcomingAppointments.slice(0, 8).map(o => (
                                         <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                                             <div>
-                                                <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>#{o.order_number.slice(-4)}</span>
-                                                <span style={{ marginLeft: '1rem' }}>{o.customer_name}</span>
+                                                <span style={{ color: '#94a3b8', fontWeight: 'bold', textTransform: 'capitalize' }}>{o.appointment_type}</span>
+                                                <span style={{ marginLeft: '1rem' }}>{o.contact_name}</span>
                                             </div>
-                                            <div className={`status-badge status-${o.status}`}>{o.status}</div>
+                                            <div className={`status-badge status-${o.status === 'completed' ? 'completed' : o.status === 'confirmed' ? 'ready' : o.status === 'cancelled' ? 'paid' : o.status}`}>{o.status}</div>
                                         </div>
                                     ))}
-                                    {orders.length === 0 && <p className="empty-state">No active orders found.</p>}
+                                    {upcomingAppointments.length === 0 && <p className="empty-state">No appointments scheduled yet.</p>}
                                 </div>
                                 <div className="finances-card">
                                     <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>Quick Actions</h3>
                                     <div style={{ display: 'grid', gap: '1rem' }}>
-                                        <button className="sidebar-item" onClick={() => handleTabClick('kds')} style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676', padding: '1rem', justifyContent: 'center' }}> Go to Kitchen</button>
-                                        <button className="sidebar-item" onClick={() => handleTabClick('cms')} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '1rem', justifyContent: 'center' }}> Manage Menu</button>
-                                        <button className="sidebar-item" onClick={() => handleTabClick('finances')} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '1rem', justifyContent: 'center' }}> View Financials</button>
+                                        <button className="sidebar-item" onClick={() => handleTabClick('reservations')} style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676', padding: '1rem', justifyContent: 'center' }}> Manage Appointments</button>
+                                        <button className="sidebar-item" onClick={() => handleTabClick('customers')} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '1rem', justifyContent: 'center' }}> Update Client CRM</button>
+                                        <button className="sidebar-item" onClick={() => handleTabClick('finances')} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '1rem', justifyContent: 'center' }}> Review Payments</button>
                                     </div>
                                 </div>
                             </div>
@@ -2873,73 +3167,229 @@ export default function AdminDashboard({ session }) {
                     ) : null}
 
             {activeTab === 'customers' && (
-                <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div className="vault-container">
+                    <div className="vault-header">
                         <div>
-                            <h2 style={{ color: '#fff', margin: 0 }}> Customer Database</h2>
-                            <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>A complete list of your customers derived from your order history.</p>
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Client CRM & Measurements</h2>
+                            <p style={{ color: '#94a3b8' }}>Track client profiles, measurements, payment progress, and relationship notes in one studio workspace.</p>
                         </div>
-                        <button className="btn-secondary" onClick={() => exportPDF()}>Export as PDF</button>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div className="status-badge status-ready">Active: {crmClients.filter((client) => client.status === 'active').length}</div>
+                            <div className="status-badge status-pending">Leads: {crmClients.filter((client) => client.status === 'lead').length}</div>
+                            <div className="status-badge status-completed">VIP: {crmClients.filter((client) => client.status === 'vip').length}</div>
+                            <div className="status-badge status-paid">Payment Follow-up: {crmClients.filter((client) => ['deposit_pending', 'balance_pending', 'overdue'].includes(client.payment_status)).length}</div>
+                        </div>
                     </div>
 
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#0f172a', color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                                <tr>
-                                    <th style={{ padding: '1rem' }}>Customer</th>
-                                    <th style={{ padding: '1rem' }}>Phone/WhatsApp</th>
-                                    <th style={{ padding: '1rem' }}>Total Orders</th>
-                                    <th style={{ padding: '1rem' }}>Total Spend</th>
-                                    <th style={{ padding: '1rem' }}>Last Order</th>
-                                    <th style={{ padding: '1rem' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(() => {
-                                    const allOrders = [...orders, ...historyOrders];
-                                    const customerMap = {};
-                                    allOrders.forEach(o => {
-                                        if (!o.customer_phone) return;
-                                        if (!customerMap[o.customer_phone]) {
-                                            customerMap[o.customer_phone] = {
-                                                name: o.customer_name,
-                                                phone: o.customer_phone,
-                                                orderCount: 0,
-                                                totalSpend: 0,
-                                                lastOrder: o.created_at
-                                            };
-                                        }
-                                        customerMap[o.customer_phone].orderCount += 1;
-                                        customerMap[o.customer_phone].totalSpend += parseFloat(o.total_price) || 0;
-                                        if (new Date(o.created_at) > new Date(customerMap[o.customer_phone].lastOrder)) {
-                                            customerMap[o.customer_phone].lastOrder = o.created_at;
-                                        }
-                                    });
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 420px) 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                        <form onSubmit={saveStudioClient} className="finances-card" style={{ display: 'grid', gap: '0.85rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ margin: 0 }}>{clientForm.id ? 'Edit Client' : 'Add Client'}</h3>
+                                {clientForm.id && <button type="button" className="btn-secondary" onClick={resetClientForm}>Clear</button>}
+                            </div>
 
-                                    const uniqueCustomers = Object.values(customerMap).sort((a,b) => b.totalSpend - a.totalSpend);
-                                    
-                                    if (uniqueCustomers.length === 0) return (
-                                        <tr><td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No customers found in your order history yet.</td></tr>
-                                    );
+                            <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr' }}>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Full Name</label>
+                                    <input className="kds-input" value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} placeholder="Client name" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Phone / WhatsApp</label>
+                                    <input className="kds-input" value={clientForm.phone} onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })} placeholder="0812345678" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Email</label>
+                                    <input className="kds-input" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="client@email.com" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Instagram</label>
+                                    <input className="kds-input" value={clientForm.instagram_handle} onChange={(e) => setClientForm({ ...clientForm, instagram_handle: e.target.value })} placeholder="@clienthandle" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Preferred Contact</label>
+                                    <select className="kds-select" value={clientForm.preferred_contact_method} onChange={(e) => setClientForm({ ...clientForm, preferred_contact_method: e.target.value })}>
+                                        <option value="whatsapp">WhatsApp</option>
+                                        <option value="call">Call</option>
+                                        <option value="email">Email</option>
+                                        <option value="instagram">Instagram</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Client Status</label>
+                                    <select className="kds-select" value={clientForm.status} onChange={(e) => setClientForm({ ...clientForm, status: e.target.value })}>
+                                        <option value="lead">Lead</option>
+                                        <option value="active">Active</option>
+                                        <option value="vip">VIP</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Payment Status</label>
+                                    <select className="kds-select" value={clientForm.payment_status} onChange={(e) => setClientForm({ ...clientForm, payment_status: e.target.value })}>
+                                        <option value="inquiry">Inquiry</option>
+                                        <option value="quote_sent">Quote Sent</option>
+                                        <option value="deposit_pending">Deposit Pending</option>
+                                        <option value="deposit_paid">Deposit Paid</option>
+                                        <option value="balance_pending">Balance Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="overdue">Overdue</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Measurements</label>
+                                    <textarea className="kds-input" rows="5" value={clientForm.measurements} onChange={(e) => setClientForm({ ...clientForm, measurements: e.target.value })} placeholder={`chest: 102 cm\nwaist: 88 cm\ninseam: 78 cm`} />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Client Notes</label>
+                                    <textarea className="kds-input" rows="4" value={clientForm.notes} onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })} placeholder="Fabric preferences, deadlines, style notes, sizing reminders..." />
+                                </div>
+                            </div>
 
-                                    return uniqueCustomers.map(c => (
-                                        <tr key={c.phone} style={{ borderBottom: '1px solid #334155' }}>
-                                            <td style={{ padding: '1rem', color: '#fff', fontWeight: 'bold' }}>{c.name}</td>
-                                            <td style={{ padding: '1rem', color: '#94a3b8' }}>{c.phone}</td>
-                                            <td style={{ padding: '1rem', color: '#fff' }}>{c.orderCount}</td>
-                                            <td style={{ padding: '1rem', color: '#00e676', fontWeight: 'bold' }}>R {c.totalSpend.toFixed(2)}</td>
-                                            <td style={{ padding: '1rem', color: '#94a3b8' }}>{new Date(c.lastOrder).toLocaleDateString()}</td>
-                                            <td style={{ padding: '1rem' }}>
-                                                <button 
-                                                    onClick={() => window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}`, '_blank')}
-                                                    style={{ background: '#25D366', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                            <button type="submit" className="btn-primary" disabled={savingClient}>
+                                {savingClient ? 'Saving...' : clientForm.id ? 'Save Client' : 'Add Client'}
+                            </button>
+                        </form>
+
+                        <div className="finances-card">
+                            <h3 style={{ marginTop: 0 }}>Relationship Snapshot</h3>
+                            <div style={{ display: 'grid', gap: '0.85rem' }}>
+                                {crmClients.slice(0, 6).map((client) => (
+                                    <div key={client.id} style={{ padding: '0.95rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                                            <strong>{client.full_name}</strong>
+                                            <span className={`status-badge status-${client.status === 'vip' ? 'completed' : client.status === 'active' ? 'ready' : client.status === 'archived' ? 'paid' : 'pending'}`}>{client.status}</span>
+                                        </div>
+                                        <div style={{ color: '#94a3b8', fontSize: '0.88rem' }}>{client.phone || client.email || 'No contact details yet'}</div>
+                                        <div style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '0.35rem' }}>{client.payment_status?.replace(/_/g, ' ')}</div>
+                                        {client.notes && <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '0.45rem' }}>{client.notes}</div>}
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                                            <button className="btn-secondary" style={{ fontSize: '0.78rem' }} onClick={() => startEditClient(client)}>Edit</button>
+                                            {client.phone && (
+                                                <button
+                                                    className="btn-secondary"
+                                                    style={{ fontSize: '0.78rem' }}
+                                                    onClick={() => window.open(`https://wa.me/${String(client.phone).replace(/\D/g, '')}`, '_blank')}
                                                 >
                                                     WhatsApp
                                                 </button>
+                                            )}
+                                            <button
+                                                className="btn-primary"
+                                                style={{ fontSize: '0.78rem', background: '#8b5cf6', color: '#f5f3ff' }}
+                                                onClick={() => {
+                                                    resetAppointmentForm();
+                                                    setAppointmentForm((current) => ({
+                                                        ...current,
+                                                        client_id: client.id,
+                                                        contact_name: client.full_name || '',
+                                                        contact_phone: client.phone || '',
+                                                        contact_email: client.email || ''
+                                                    }));
+                                                    setActiveTab('reservations');
+                                                }}
+                                            >
+                                                New Appointment
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {crmClients.length === 0 && <div className="empty-state">No stylist clients yet. The first booking request will start populating this studio CRM once the new CRM tables are live.</div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="table-responsive">
+                        <table className="vault-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Last Appointment</th>
+                                    <th>Measurements</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {crmClients.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="empty-state">No client profiles yet.</td>
+                                    </tr>
+                                ) : (
+                                    crmClients.map((client) => (
+                                        <tr key={client.id}>
+                                            <td>
+                                                <strong>{client.full_name}</strong>
+                                                {client.instagram_handle && <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '0.25rem' }}>{client.instagram_handle}</div>}
+                                            </td>
+                                            <td>
+                                                <div>{client.phone || 'No phone added'}</div>
+                                                {client.email && <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '0.25rem' }}>{client.email}</div>}
+                                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginTop: '0.25rem' }}>{client.preferred_contact_method?.replace(/_/g, ' ')}</div>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge status-${client.status === 'vip' ? 'completed' : client.status === 'active' ? 'ready' : client.status === 'archived' ? 'paid' : 'pending'}`}>
+                                                    {client.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge status-${client.payment_status === 'paid' ? 'completed' : client.payment_status === 'deposit_paid' ? 'ready' : client.payment_status === 'overdue' ? 'paid' : 'pending'}`}>
+                                                    {client.payment_status?.replace(/_/g, ' ')}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {client.last_appointment_at ? new Date(client.last_appointment_at).toLocaleDateString() : <span style={{ color: '#64748b' }}>Not booked yet</span>}
+                                            </td>
+                                            <td style={{ maxWidth: '220px', color: '#cbd5e1' }}>
+                                                {client.measurements && Object.keys(client.measurements).length > 0 ? (
+                                                    <div style={{ display: 'grid', gap: '0.2rem' }}>
+                                                        {Object.entries(client.measurements).slice(0, 4).map(([key, value]) => (
+                                                            <span key={key}><strong style={{ color: '#f8fafc' }}>{key}:</strong> {String(value)}</span>
+                                                        ))}
+                                                        {Object.keys(client.measurements).length > 4 && <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>+ more</span>}
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: '#64748b' }}>No measurements saved</span>
+                                                )}
+                                            </td>
+                                            <td style={{ maxWidth: '220px', color: '#cbd5e1' }}>
+                                                {client.notes ? client.notes : <span style={{ color: '#64748b' }}>No notes yet</span>}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                                    <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => startEditClient(client)}>
+                                                        Edit
+                                                    </button>
+                                                    {client.phone && (
+                                                        <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => window.open(`https://wa.me/${String(client.phone).replace(/\D/g, '')}`, '_blank')}>
+                                                            WhatsApp
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="btn-primary"
+                                                        style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#8b5cf6', color: '#f5f3ff' }}
+                                                        onClick={() => {
+                                                            resetAppointmentForm();
+                                                            setAppointmentForm((current) => ({
+                                                                ...current,
+                                                                client_id: client.id,
+                                                                contact_name: client.full_name || '',
+                                                                contact_phone: client.phone || '',
+                                                                contact_email: client.email || ''
+                                                            }));
+                                                            setActiveTab('reservations');
+                                                        }}
+                                                    >
+                                                        Book Fitting
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
-                                    ));
-                                })()}
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -3527,13 +3977,150 @@ export default function AdminDashboard({ session }) {
                 <div className="vault-container">
                     <div className="vault-header">
                         <div>
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Reservations & Venue Bookings</h2>
-                            <p style={{ color: '#94a3b8' }}>Manage table bookings and private venue requests from your landing page.</p>
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Appointments, Fittings & Studio Calendar</h2>
+                            <p style={{ color: '#94a3b8' }}>Capture consultations, fitting dates, payment follow-ups, and client requests in one place.</p>
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div className="status-badge status-paid">Pending: {reservations.filter((r) => r.status === 'pending').length}</div>
-                            <div className="status-badge status-ready">Confirmed: {reservations.filter((r) => r.status === 'confirmed').length}</div>
-                            <div className="status-badge status-completed">Completed: {reservations.filter((r) => r.status === 'completed').length}</div>
+                            <div className="status-badge status-paid">Pending: {upcomingAppointments.filter((r) => r.status === 'pending').length}</div>
+                            <div className="status-badge status-ready">Confirmed: {upcomingAppointments.filter((r) => r.status === 'confirmed').length}</div>
+                            <div className="status-badge status-completed">Completed: {upcomingAppointments.filter((r) => r.status === 'completed').length}</div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 420px) 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                        <form onSubmit={saveStudioAppointment} className="finances-card" style={{ display: 'grid', gap: '0.85rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ margin: 0 }}>{appointmentForm.id ? 'Edit Appointment' : 'Add Appointment'}</h3>
+                                {appointmentForm.id && <button type="button" className="btn-secondary" onClick={resetAppointmentForm}>Clear</button>}
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: '1fr 1fr' }}>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Client</label>
+                                    <select className="kds-select" value={appointmentForm.client_id} onChange={(e) => {
+                                        const nextId = e.target.value;
+                                        const linkedClient = studioClients.find((client) => client.id === nextId);
+                                        setAppointmentForm((current) => ({
+                                            ...current,
+                                            client_id: nextId,
+                                            contact_name: linkedClient?.full_name || current.contact_name,
+                                            contact_phone: linkedClient?.phone || current.contact_phone,
+                                            contact_email: linkedClient?.email || current.contact_email
+                                        }));
+                                    }}>
+                                        <option value="">Walk-in / new client</option>
+                                        {studioClients.map((client) => <option key={client.id} value={client.id}>{client.full_name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Appointment Type</label>
+                                    <select className="kds-select" value={appointmentForm.appointment_type} onChange={(e) => setAppointmentForm({ ...appointmentForm, appointment_type: e.target.value })}>
+                                        <option value="consultation">Consultation</option>
+                                        <option value="measurement">Measurement</option>
+                                        <option value="fitting">Fitting</option>
+                                        <option value="pickup">Pickup</option>
+                                        <option value="delivery">Delivery</option>
+                                        <option value="style_session">Style Session</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Appointment Date</label>
+                                    <input type="date" className="kds-input" value={appointmentForm.appointment_date} onChange={(e) => setAppointmentForm({ ...appointmentForm, appointment_date: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Time</label>
+                                    <input type="time" className="kds-input" value={appointmentForm.appointment_time} onChange={(e) => setAppointmentForm({ ...appointmentForm, appointment_time: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Fitting Date</label>
+                                    <input type="date" className="kds-input" value={appointmentForm.fitting_date} onChange={(e) => setAppointmentForm({ ...appointmentForm, fitting_date: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Fitting Time</label>
+                                    <input type="time" className="kds-input" value={appointmentForm.fitting_time} onChange={(e) => setAppointmentForm({ ...appointmentForm, fitting_time: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Client Name</label>
+                                    <input className="kds-input" value={appointmentForm.contact_name} onChange={(e) => setAppointmentForm({ ...appointmentForm, contact_name: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Phone</label>
+                                    <input className="kds-input" value={appointmentForm.contact_phone} onChange={(e) => setAppointmentForm({ ...appointmentForm, contact_phone: e.target.value })} />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Email</label>
+                                    <input className="kds-input" value={appointmentForm.contact_email} onChange={(e) => setAppointmentForm({ ...appointmentForm, contact_email: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Garment Type</label>
+                                    <input className="kds-input" value={appointmentForm.garment_type} onChange={(e) => setAppointmentForm({ ...appointmentForm, garment_type: e.target.value })} placeholder="Suit, dress, wedding fit..." />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Look Type</label>
+                                    <input className="kds-input" value={appointmentForm.look_type} onChange={(e) => setAppointmentForm({ ...appointmentForm, look_type: e.target.value })} placeholder="Formal, wedding, matric..." />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Payment Status</label>
+                                    <select className="kds-select" value={appointmentForm.payment_status} onChange={(e) => setAppointmentForm({ ...appointmentForm, payment_status: e.target.value })}>
+                                        <option value="inquiry">Inquiry</option>
+                                        <option value="quote_sent">Quote Sent</option>
+                                        <option value="deposit_pending">Deposit Pending</option>
+                                        <option value="deposit_paid">Deposit Paid</option>
+                                        <option value="balance_pending">Balance Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="overdue">Overdue</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Budget Range</label>
+                                    <input className="kds-input" value={appointmentForm.budget_range} onChange={(e) => setAppointmentForm({ ...appointmentForm, budget_range: e.target.value })} placeholder="R3 500 - R5 000" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Deposit</label>
+                                    <input type="number" step="0.01" className="kds-input" value={appointmentForm.deposit_amount} onChange={(e) => setAppointmentForm({ ...appointmentForm, deposit_amount: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Balance</label>
+                                    <input type="number" step="0.01" className="kds-input" value={appointmentForm.balance_amount} onChange={(e) => setAppointmentForm({ ...appointmentForm, balance_amount: e.target.value })} />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Client Request</label>
+                                    <textarea className="kds-input" rows="3" value={appointmentForm.special_requests} onChange={(e) => setAppointmentForm({ ...appointmentForm, special_requests: e.target.value })} placeholder="Occasion, measurements needed, fabric direction, deadlines..." />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.4rem' }}>Internal Notes</label>
+                                    <textarea className="kds-input" rows="3" value={appointmentForm.internal_notes} onChange={(e) => setAppointmentForm({ ...appointmentForm, internal_notes: e.target.value })} placeholder="Reminders for staff, fitting prep, payment notes..." />
+                                </div>
+                            </div>
+
+                            <button type="submit" className="btn-primary" disabled={savingAppointment}>
+                                {savingAppointment ? 'Saving...' : appointmentForm.id ? 'Save Appointment' : 'Create Appointment'}
+                            </button>
+                        </form>
+
+                        <div className="finances-card">
+                            <h3 style={{ marginTop: 0 }}>Today & Next</h3>
+                            <div style={{ display: 'grid', gap: '0.85rem' }}>
+                                {upcomingAppointments.slice(0, 6).map((appointment) => (
+                                    <div key={appointment.id} style={{ padding: '0.95rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                                            <strong>{appointment.contact_name}</strong>
+                                            <span className={`status-badge status-${appointment.status === 'confirmed' ? 'ready' : appointment.status === 'completed' ? 'completed' : appointment.status === 'cancelled' ? 'paid' : appointment.status}`}>{appointment.status}</span>
+                                        </div>
+                                        <div style={{ color: '#94a3b8', fontSize: '0.88rem' }}>{appointment.appointment_date}{appointment.appointment_time ? ` at ${appointment.appointment_time}` : ''}</div>
+                                        <div style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '0.35rem' }}>{appointment.garment_type || appointment.look_type || 'No garment details yet'}</div>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                                            <button className="btn-secondary" style={{ fontSize: '0.78rem' }} onClick={() => startEditAppointment(appointment)}>Edit</button>
+                                            {appointment.status === 'pending' && <button className="btn-primary" style={{ fontSize: '0.78rem', background: '#10b981', color: '#052e16' }} onClick={() => updateStudioAppointmentStatus(appointment.id, 'confirmed')}>Confirm</button>}
+                                            {appointment.status === 'confirmed' && <button className="btn-primary" style={{ fontSize: '0.78rem', background: '#3b82f6', color: '#eff6ff' }} onClick={() => updateStudioAppointmentStatus(appointment.id, 'in_progress')}>Start</button>}
+                                            {['confirmed', 'in_progress'].includes(appointment.status) && <button className="btn-secondary" style={{ fontSize: '0.78rem' }} onClick={() => updateStudioAppointmentStatus(appointment.id, 'fitted')}>Mark Fitted</button>}
+                                            {['fitted', 'ready'].includes(appointment.status) && <button className="btn-primary" style={{ fontSize: '0.78rem', background: '#8b5cf6', color: '#f5f3ff' }} onClick={() => updateStudioAppointmentStatus(appointment.id, 'completed')}>Complete</button>}
+                                        </div>
+                                    </div>
+                                ))}
+                                {upcomingAppointments.length === 0 && <div className="empty-state">No appointments yet. The next fitting request from the landing page will show up here once the new CRM tables are live.</div>}
+                            </div>
                         </div>
                     </div>
 
@@ -3542,76 +4129,107 @@ export default function AdminDashboard({ session }) {
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Guest</th>
-                                    <th>Type</th>
-                                    <th>Guests</th>
-                                    <th>Branch</th>
+                                    <th>Client</th>
+                                    <th>Appointment</th>
+                                    <th>Payment</th>
+                                    <th>Fitting</th>
                                     <th>Status</th>
                                     <th>Notes</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {reservations.length === 0 ? (
+                                {upcomingAppointments.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="empty-state">No reservation requests yet.</td>
+                                        <td colSpan="8" className="empty-state">No appointment records yet.</td>
                                     </tr>
                                 ) : (
-                                    reservations.map((reservation) => (
+                                    upcomingAppointments.map((reservation) => (
                                         <tr key={reservation.id}>
                                             <td>
-                                                <strong>{new Date(reservation.reservation_date).toLocaleDateString()}</strong>
+                                                <strong>{new Date(reservation.appointment_date).toLocaleDateString()}</strong>
                                                 <br />
-                                                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{reservation.reservation_time || 'Time not set'}</span>
+                                                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{reservation.appointment_time || 'Time not set'}</span>
                                             </td>
                                             <td>
-                                                {reservation.customer_name}
+                                                {reservation.contact_name}
                                                 <br />
-                                                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{reservation.customer_phone}</span>
-                                                {reservation.customer_email && (
+                                                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{reservation.contact_phone}</span>
+                                                {reservation.contact_email && (
                                                     <>
                                                         <br />
-                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{reservation.customer_email}</span>
+                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{reservation.contact_email}</span>
                                                     </>
                                                 )}
                                             </td>
-                                            <td style={{ textTransform: 'capitalize' }}>{reservation.reservation_type}</td>
-                                            <td>{reservation.guest_count}</td>
-                                            <td>{reservation.locations?.name || 'Any branch'}</td>
+                                            <td style={{ textTransform: 'capitalize' }}>
+                                                {reservation.appointment_type}
+                                                {(reservation.garment_type || reservation.look_type) && <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '0.25rem' }}>{reservation.garment_type || reservation.look_type}</div>}
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge status-${reservation.payment_status === 'paid' ? 'completed' : reservation.payment_status === 'deposit_paid' ? 'ready' : reservation.payment_status === 'overdue' ? 'paid' : 'pending'}`}>
+                                                    {reservation.payment_status?.replace(/_/g, ' ')}
+                                                </span>
+                                                {(Number(reservation.deposit_amount || 0) > 0 || Number(reservation.balance_amount || 0) > 0) && (
+                                                    <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '0.35rem' }}>
+                                                        Deposit: R {Number(reservation.deposit_amount || 0).toFixed(2)}<br />
+                                                        Balance: R {Number(reservation.balance_amount || 0).toFixed(2)}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
+                                                {reservation.fitting_date ? (
+                                                    <>
+                                                        <strong>{new Date(reservation.fitting_date).toLocaleDateString()}</strong>
+                                                        <br />
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{reservation.fitting_time || 'Time not set'}</span>
+                                                    </>
+                                                ) : (
+                                                    <span style={{ color: '#64748b' }}>Not set</span>
+                                                )}
+                                            </td>
                                             <td>
                                                 <span className={`status-badge status-${reservation.status === 'cancelled' ? 'paid' : reservation.status === 'completed' ? 'completed' : reservation.status === 'confirmed' ? 'ready' : reservation.status}`}>
                                                     {reservation.status}
                                                 </span>
                                             </td>
                                             <td style={{ maxWidth: '220px', color: '#cbd5e1' }}>
-                                                {reservation.occasion && <div><strong>Occasion:</strong> {reservation.occasion}</div>}
-                                                {reservation.special_requests && <div style={{ marginTop: '0.35rem' }}>{reservation.special_requests}</div>}
-                                                {!reservation.occasion && !reservation.special_requests && <span style={{ color: '#64748b' }}>No extra notes</span>}
+                                                {reservation.special_requests && <div>{reservation.special_requests}</div>}
+                                                {reservation.internal_notes && <div style={{ marginTop: '0.35rem', color: '#94a3b8' }}><strong>Studio:</strong> {reservation.internal_notes}</div>}
+                                                {!reservation.special_requests && !reservation.internal_notes && <span style={{ color: '#64748b' }}>No notes yet</span>}
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                                    <button type="button" className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => startEditAppointment(reservation)}>
+                                                        Edit
+                                                    </button>
                                                     {reservation.status === 'pending' && (
                                                         <>
-                                                            <button className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#10b981', color: '#052e16' }} onClick={() => updateReservationStatus(reservation.id, 'confirmed')}>
+                                                            <button type="button" className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#10b981', color: '#052e16' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'confirmed')}>
                                                                 Confirm
                                                             </button>
-                                                            <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => updateReservationStatus(reservation.id, 'cancelled')}>
+                                                            <button type="button" className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'cancelled')}>
                                                                 Decline
                                                             </button>
                                                         </>
                                                     )}
                                                     {reservation.status === 'confirmed' && (
                                                         <>
-                                                            <button className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#3b82f6', color: '#eff6ff' }} onClick={() => updateReservationStatus(reservation.id, 'seated')}>
-                                                                Mark Seated
+                                                            <button className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#3b82f6', color: '#eff6ff' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'in_progress')}>
+                                                                Start Session
                                                             </button>
-                                                            <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => updateReservationStatus(reservation.id, 'cancelled')}>
+                                                            <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'cancelled')}>
                                                                 Cancel
                                                             </button>
                                                         </>
                                                     )}
-                                                    {reservation.status === 'seated' && (
-                                                        <button className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#8b5cf6', color: '#f5f3ff' }} onClick={() => updateReservationStatus(reservation.id, 'completed')}>
+                                                    {['in_progress', 'confirmed'].includes(reservation.status) && (
+                                                        <button className="btn-secondary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'fitted')}>
+                                                            Mark Fitted
+                                                        </button>
+                                                    )}
+                                                    {['fitted', 'ready'].includes(reservation.status) && (
+                                                        <button className="btn-primary" style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', background: '#8b5cf6', color: '#f5f3ff' }} onClick={() => updateStudioAppointmentStatus(reservation.id, 'completed')}>
                                                             Complete
                                                         </button>
                                                     )}

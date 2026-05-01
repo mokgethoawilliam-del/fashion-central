@@ -254,6 +254,10 @@ export default function KingsWearLanding() {
     name: "",
     email: "",
     phone: "",
+    appointmentType: "consultation",
+    preferredDate: "",
+    garmentType: "",
+    budgetRange: "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -324,34 +328,55 @@ export default function KingsWearLanding() {
     setSubmitStatus("idle");
 
     try {
-      const orderNumber = "KW-" + Math.floor(100000 + Math.random() * 900000);
-      const { data: order, error } = await supabase
-        .from("orders")
+      const { data: clientRecord, error: clientError } = await supabase
+        .from("stylist_clients")
         .insert([{
           vendor_id: vendorId,
-          order_number: orderNumber,
-          customer_name: formData.name,
-          customer_phone: formData.phone,
-          customer_email: formData.email,
-          status: "paid",
-          total_price: 0,
-          fulfillment_method: "collection",
-          source: "Kings Wear Landing Page",
+          full_name: formData.name,
+          phone: formData.phone,
+          email: formData.email || null,
+          preferred_contact_method: "whatsapp",
+          payment_status: "inquiry",
+          status: "lead",
+          source: "landing_page",
+          notes: formData.message || null,
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (clientError) throw clientError;
 
-      await supabase.from("order_items").insert([{
-        order_id: order.id,
-        quantity: 1,
-        unit_price: 0,
-        modifiers_json: { custom_notes: formData.message },
-      }]);
+      const { error: appointmentError } = await supabase
+        .from("stylist_appointments")
+        .insert([{
+          vendor_id: vendorId,
+          client_id: clientRecord?.id || null,
+          appointment_type: formData.appointmentType,
+          status: "pending",
+          appointment_date: formData.preferredDate || new Date().toISOString().split("T")[0],
+          garment_type: formData.garmentType || null,
+          budget_range: formData.budgetRange || null,
+          payment_status: "inquiry",
+          contact_name: formData.name,
+          contact_phone: formData.phone,
+          contact_email: formData.email || null,
+          special_requests: formData.message || null,
+          source: "landing_page",
+        }]);
+
+      if (appointmentError) throw appointmentError;
 
       setSubmitStatus("success");
-      setFormData({ name: "", email: "", phone: "", message: "" });
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        appointmentType: "consultation",
+        preferredDate: "",
+        garmentType: "",
+        budgetRange: "",
+        message: "",
+      });
     } catch (err) {
       console.error("Booking Error:", err);
       setSubmitStatus("error");
@@ -698,7 +723,7 @@ export default function KingsWearLanding() {
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
             />
             <input
-              required type="email" placeholder="Email"
+              type="email" placeholder="Email"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               style={inputStyle}
@@ -713,6 +738,49 @@ export default function KingsWearLanding() {
               onFocus={e => e.target.style.borderColor = "rgba(201,166,70,0.5)"}
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
             />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+              <select
+                value={formData.appointmentType}
+                onChange={e => setFormData({ ...formData, appointmentType: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "rgba(201,166,70,0.5)"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
+              >
+                <option value="consultation">Consultation</option>
+                <option value="measurement">Measurement Session</option>
+                <option value="fitting">Fitting</option>
+                <option value="style_session">Style Session</option>
+                <option value="pickup">Pickup</option>
+              </select>
+              <input
+                type="date"
+                value={formData.preferredDate}
+                onChange={e => setFormData({ ...formData, preferredDate: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "rgba(201,166,70,0.5)"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
+              />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+              <input
+                type="text"
+                placeholder="Garment Type"
+                value={formData.garmentType}
+                onChange={e => setFormData({ ...formData, garmentType: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "rgba(201,166,70,0.5)"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
+              />
+              <input
+                type="text"
+                placeholder="Budget Range"
+                value={formData.budgetRange}
+                onChange={e => setFormData({ ...formData, budgetRange: e.target.value })}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = "rgba(201,166,70,0.5)"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.15)"}
+              />
+            </div>
             <textarea
               rows={4} placeholder="Tell us about the occasion, garment type, preferred fitting date, measurements, or styling direction."
               value={formData.message}
