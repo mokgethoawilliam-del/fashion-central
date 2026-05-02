@@ -1930,12 +1930,12 @@ export default function AdminDashboard({ session }) {
     const sidebarNavItems = [
         { id: 'overview', label: 'Studio Overview', icon: <Icons.Dashboard /> },
         { id: 'ai', label: 'AI Manager', icon: <Icons.Brain />, accent: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.2))', borderColor: 'rgba(139,92,246,0.5)' },
-        { id: 'kds', label: 'Client Orders', icon: <Icons.Kitchen /> },
+        { id: 'kds', label: 'Studio Pipeline', icon: <Icons.Kitchen /> },
         { id: 'support', label: 'Client Chat', icon: <Icons.Chat /> },
         { id: 'reservations', label: 'Appointments', icon: <Icons.Calendar /> },
         { id: 'history', label: 'Client History', icon: <Icons.History /> },
         { id: 'finances', label: 'Payments', icon: <Icons.Finance /> },
-        { id: 'inventory', label: 'Materials', icon: <Icons.Inventory /> },
+        { id: 'inventory', label: 'Fabrics & Materials', icon: <Icons.Inventory /> },
         { id: 'customers', label: 'Clients', icon: <Icons.Users /> },
         { id: 'testimonials', label: 'Testimonials', icon: <Icons.Testimonials /> },
         { id: 'logistics', label: 'Operations', icon: <Icons.Logistics /> },
@@ -1987,7 +1987,7 @@ export default function AdminDashboard({ session }) {
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
                         <h2 style={{ color: '#fff', marginBottom: '0.75rem' }}>Premium Feature</h2>
                         <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                            Features like KDS, Inventory, and CMS Settings are available on our <b>R 399/month</b> plan. Subscribe to unlock full power.
+                            Features like the studio pipeline, materials workspace, and brand site tools are available on our <b>R 399/month</b> plan. Subscribe to unlock full power.
                         </p>
                         <button onClick={() => { setShowGateModal(false); handleSubscribe(); }} style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, #00e676, #00c853)', color: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
                             Unlock Now
@@ -2046,7 +2046,7 @@ export default function AdminDashboard({ session }) {
                 }}>
                     <div className="cms-card" style={{ width: '420px', textAlign: 'center', border: '1px solid rgba(0, 230, 118, 0.3)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-                        <h2 style={{ color: '#00e676', marginBottom: '0.5rem' }}>Verify Collection PIN</h2>
+                                <h2 style={{ color: '#00e676', marginBottom: '0.5rem' }}>Verify Handover PIN</h2>
                         <p style={{ color: '#94a3b8', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                             Order <strong style={{ color: '#fff' }}>#{isVerifyingPin.order_number}</strong> for <strong style={{ color: '#fff' }}>{isVerifyingPin.customer_name}</strong>
                         </p>
@@ -2383,7 +2383,7 @@ export default function AdminDashboard({ session }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <h1 style={{ fontSize: '1.25rem', margin: 0, fontWeight: '700' }}>
                             {activeTab === 'overview' && ' Studio Overview'}
-                            {activeTab === 'kds' && ' Client Orders'}
+                            {activeTab === 'kds' && ' Studio Pipeline'}
                             {activeTab === 'support' && ' Client Support'}
                             {activeTab === 'history' && ' Client History'}
                             {activeTab === 'finances' && ' Payments & Revenue'}
@@ -2448,7 +2448,7 @@ export default function AdminDashboard({ session }) {
                                 value={selectedLocation}
                                 onChange={(e) => setSelectedLocation(e.target.value)}
                             >
-                                <option value="all">Global (All Stalls)</option>
+                                <option value="all">Global (All Studio Locations)</option>
                                 {locations.map(loc => (
                                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                                 ))}
@@ -2552,7 +2552,7 @@ export default function AdminDashboard({ session }) {
                                     <h2 style={{ fontSize: '2.5rem', margin: 0, color: '#00e676' }}>
                                         R {orders.filter(o => o.status !== 'pending' && new Date(o.created_at).toDateString() === new Date().toDateString()).reduce((acc, curr) => acc + (parseFloat(curr.total_price) || 0), 0).toFixed(2)}
                                     </h2>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Includes all Paid/Completed orders today</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Includes paid orders and completed styling jobs logged today</span>
                                 </div>
                                 <div className="finances-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Upcoming Appointments</span>
@@ -2596,7 +2596,7 @@ export default function AdminDashboard({ session }) {
                                     <div style={{ display: 'grid', gap: '1rem' }}>
                                         <button className="sidebar-item" onClick={() => handleTabClick('reservations')} style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676', padding: '1rem', justifyContent: 'center' }}> Manage Appointments</button>
                                         <button className="sidebar-item" onClick={() => handleTabClick('customers')} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', padding: '1rem', justifyContent: 'center' }}> Update Client CRM</button>
-                                        <button className="sidebar-item" onClick={() => handleTabClick('finances')} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '1rem', justifyContent: 'center' }}> Review Payments</button>
+                                        <button className="sidebar-item" onClick={() => handleTabClick('cms')} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '1rem', justifyContent: 'center' }}> Refresh Brand & Site</button>
                                     </div>
                                 </div>
                             </div>
@@ -3139,28 +3139,28 @@ export default function AdminDashboard({ session }) {
                         <div className="kds-columns">
                             {/* Column 1: New / Paid */}
                             <div className="kds-col kds-col-new">
-                                <h2> NEW ORDERS ({newOrders.length})</h2>
+                                <h2> NEW CLIENT REQUESTS ({newOrders.length})</h2>
                                 <div className="kds-list">
                                     {newOrders.map(o => <OrderCard key={o.id} order={o} updateOrderStatus={updateOrderStatus} showLocation={selectedLocation === 'all'} setIsVerifyingPin={setIsVerifyingPin} setVerificationPin={setVerificationPin} setPinError={setPinError} />)}
-                                    {newOrders.length === 0 && <p className="empty-state">No new orders.</p>}
+                                    {newOrders.length === 0 && <p className="empty-state">No new client requests.</p>}
                                 </div>
                             </div>
 
                             {/* Column 2: Preparing */}
                             <div className="kds-col kds-col-prep">
-                                <h2> PREPARING ({prepOrders.length})</h2>
+                                <h2> IN PRODUCTION ({prepOrders.length})</h2>
                                 <div className="kds-list">
                                     {prepOrders.map(o => <OrderCard key={o.id} order={o} updateOrderStatus={updateOrderStatus} showLocation={selectedLocation === 'all'} setIsVerifyingPin={setIsVerifyingPin} setVerificationPin={setVerificationPin} setPinError={setPinError} />)}
-                                    {prepOrders.length === 0 && <p className="empty-state">Kitchen is clear.</p>}
+                                    {prepOrders.length === 0 && <p className="empty-state">No active tailoring work right now.</p>}
                                 </div>
                             </div>
 
                             {/* Column 3: Ready */}
                             <div className="kds-col kds-col-ready">
-                                <h2> READY FOR COLLECTION ({readyOrders.length})</h2>
+                                <h2> READY FOR HANDOVER ({readyOrders.length})</h2>
                                 <div className="kds-list">
                                     {readyOrders.map(o => <OrderCard key={o.id} order={o} updateOrderStatus={updateOrderStatus} showLocation={selectedLocation === 'all'} setIsVerifyingPin={setIsVerifyingPin} setVerificationPin={setVerificationPin} setPinError={setPinError} />)}
-                                    {readyOrders.length === 0 && <p className="empty-state">No orders awaiting pickup.</p>}
+                                    {readyOrders.length === 0 && <p className="empty-state">No finished pieces awaiting collection.</p>}
                                 </div>
                             </div>
                         </div>
@@ -3669,18 +3669,18 @@ export default function AdminDashboard({ session }) {
                             <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{isStaff ? 'Stock Copilot' : 'Business Copilot'}</h2>
                             <p style={{ color: '#94a3b8', fontSize: '0.92rem', lineHeight: '1.6', marginTop: '0.75rem' }}>
                                 {isStaff
-                                    ? 'Use plain language to update stock, log received items, track shortages, and spot what needs restocking next.'
-                                    : 'Ask about bookings, orders, revenue, stock pressure, branch performance, menu performance, or what needs attention next.'}
+                                    ? 'Use plain language to update materials, log received stock, track shortages, and spot what needs restocking next.'
+                                    : 'Ask about bookings, appointments, client activity, payments, studio performance, or what needs attention next.'}
                             </p>
                         </div>
 
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Tracked Ingredients' : 'Active Orders'}</div>
+                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Tracked Materials' : 'Active Orders'}</div>
                                 <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>{isStaff ? ingredients.length : orders.length}</div>
                             </div>
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
-                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Out of Stock' : 'Ready for Collection'}</div>
+                                <div style={{ color: '#64748b', fontSize: '0.78rem', marginBottom: '0.25rem' }}>{isStaff ? 'Out of Stock' : 'Ready for Handover'}</div>
                                 <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>
                                     {isStaff ? ingredients.filter(ing => Number(ing.current_stock ?? 0) <= 0).length : orders.filter(o => o.status === 'ready').length}
                                 </div>
@@ -3717,7 +3717,7 @@ export default function AdminDashboard({ session }) {
                     <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', display: 'flex', flexDirection: 'column', minHeight: '70vh', overflow: 'hidden' }}>
                         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                             <div>
-                                <div style={{ fontWeight: '700', fontSize: '1rem' }}>{isStaff ? 'Inventory Chat' : 'Operations Chat'}</div>
+                                <div style={{ fontWeight: '700', fontSize: '1rem' }}>{isStaff ? 'Materials Chat' : 'Studio Operations Chat'}</div>
                                 <div style={{ color: '#64748b', fontSize: '0.84rem' }}>
                                     {isStaff ? 'Grounded in your own ingredient and stock data only' : 'Grounded in your own bookings, orders, stock, menu, and expense data'}
                                 </div>
@@ -3868,7 +3868,7 @@ export default function AdminDashboard({ session }) {
                     <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
                         <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: '#60a5fa' }}> Welcome to the Help Center!</h2>
                         <p style={{ color: '#94a3b8', fontSize: '1.1rem' }}>
-                            Here is the latest on how your shop works now, including the newer AI, stock, payment, and staff access changes.
+                            Here is the latest on how your studio works now, including AI support, appointments, client CRM, payments, and staff access.
                         </p>
                     </div>
 
@@ -3876,13 +3876,13 @@ export default function AdminDashboard({ session }) {
                         <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.22)', borderRadius: '12px', padding: '2rem' }}>
                             <h3 style={{ fontSize: '1.5rem', color: '#60a5fa', marginBottom: '1rem' }}> Recent Developments</h3>
                             <ul style={{ color: '#cbd5e1', paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', lineHeight: '1.6' }}>
-                                <li><strong>AI Manager</strong> can now answer shop questions, highlight low-stock risk, help with stock updates, and prepare branded PDF reports.</li>
-                                <li><strong>Stock updates are safer</strong>. AI suggestions now ask for confirmation before anything changes in inventory.</li>
-                                <li><strong>Collection flow is cleaner</strong>. Orders still use the PIN flow when a PIN exists, but older affected orders can still be completed through the normal collected button.</li>
-                                <li><strong>Vendor payments are separated</strong>. Vendor buyer payments and your own platform billing are no longer mixed together.</li>
-                                <li><strong>Staff access is tighter</strong>. Inventory staff are now restricted to stock-related tools instead of seeing full owner-level controls.</li>
-                                <li><strong>Reservations are now supported</strong> with public booking requests on the landing page and a management view in admin.</li>
-                                <li><strong>AI PDF reports are now supported</strong> for buyers, items, branches, sales, expenses, stock, kitchen activity, reservations, and more.</li>
+                                <li><strong>AI Manager</strong> can now answer studio questions, highlight upcoming work, help with materials updates, and prepare branded PDF reports.</li>
+                                <li><strong>Materials updates are safer</strong>. AI suggestions now ask for confirmation before anything changes in stock.</li>
+                                <li><strong>Handover flow is cleaner</strong>. Jobs can still use the PIN flow when a handover code exists, but the admin no longer collapses when older data is inconsistent.</li>
+                                <li><strong>Vendor payments are separated</strong>. Client payments and your own platform billing are no longer mixed together.</li>
+                                <li><strong>Staff access is tighter</strong>. Team members can be limited to the tools they actually need instead of seeing full owner-level controls.</li>
+                                <li><strong>Appointments and client CRM are now supported</strong> with public booking requests flowing into studio records.</li>
+                                <li><strong>AI PDF reports are now supported</strong> for clients, services, studio performance, payments, materials, and upcoming work.</li>
                                 <li><strong>Website CMS Copilot is now available</strong> inside branding settings to draft landing-page copy before you save it.</li>
                             </ul>
                         </div>
@@ -3890,68 +3890,67 @@ export default function AdminDashboard({ session }) {
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
                             <h3 style={{ fontSize: '1.5rem', color: '#8b5cf6', marginBottom: '1rem' }}> AI Manager</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                The <strong>AI Manager</strong> is your shop copilot. You can ask it about bookings, slow branches, stock pressure, active orders, low-stock items, and day summaries.
+                                The <strong>AI Manager</strong> is your studio copilot. You can ask it about bookings, fitting schedules, payment follow-ups, materials pressure, active jobs, and day summaries.
                             </p>
                             <ul style={{ color: '#cbd5e1', marginTop: '1rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <li>Use it for questions like <strong>"What should I focus on right now?"</strong>, <strong>"Which orders are stuck?"</strong>, or <strong>"How many bookings do I have this week?"</strong></li>
-                                <li>You can also tell it stock actions like <strong>"Add 20 cheese slices"</strong> and then confirm the update.</li>
-                                <li>If you buy ingredients in bulk, the AI can convert them into usable stock when you set up a restock conversion rule.</li>
-                                <li>You can ask for branded PDFs such as <strong>"generate my top buyers report from April to May"</strong>, <strong>"make a net profit PDF for this month"</strong>, or <strong>"generate a reservations report for this month"</strong>.</li>
+                                <li>Use it for questions like <strong>"What should I focus on right now?"</strong>, <strong>"Which fittings are coming up?"</strong>, or <strong>"How many bookings do I have this week?"</strong></li>
+                                <li>You can also tell it stock actions like <strong>"Add 6 lining rolls"</strong> and then confirm the update.</li>
+                                <li>If you buy materials in bulk, the AI can convert them into usable stock when you set up a restock conversion rule.</li>
+                                <li>You can ask for branded PDFs such as <strong>"generate my top clients report from April to May"</strong>, <strong>"make a payment follow-up PDF for this month"</strong>, or <strong>"generate an appointments report for this month"</strong>.</li>
                                 <li>The branding section now includes a <strong>Website CMS Copilot</strong> that can draft hero copy and about text before you apply it to the form.</li>
                             </ul>
                         </div>
 
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', color: '#00e676', marginBottom: '1rem' }}> Live Kitchen</h3>
+                            <h3 style={{ fontSize: '1.5rem', color: '#00e676', marginBottom: '1rem' }}> Studio Pipeline</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                Think of the <strong>Live Kitchen</strong> as the order control room. New paid orders appear there first, then move through preparing, ready, and completed.
+                                Think of the <strong>Studio Pipeline</strong> as the production control room. New client requests appear there first, then move through in progress, ready for handover, and completed.
                             </p>
                             <ul style={{ color: '#cbd5e1', marginTop: '1rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <li>Click <strong>Start Preparing</strong> when the order enters the kitchen.</li>
-                                <li>Click <strong>Mark Ready</strong> when it is packed and waiting.</li>
-                                <li>Click <strong>Mark Collected</strong> or <strong>Mark Delivered</strong> to close the order.</li>
-                                <li>If the order has a collection PIN, the system will ask for it before completion.</li>
+                                <li>Use it to track new requests, work in progress, ready collections, and completed client handovers.</li>
+                                <li>Appointments and fittings live in their own dedicated tab, but the pipeline still gives you a quick operational view.</li>
+                                <li>When a job is ready, the system can still use a handover PIN flow if one exists.</li>
                             </ul>
                         </div>
 
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', color: '#f59e0b', marginBottom: '1rem' }}> Inventory</h3>
+                            <h3 style={{ fontSize: '1.5rem', color: '#f59e0b', marginBottom: '1rem' }}> Fabrics & Materials</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                Inventory now works mainly with <strong>usable stock count</strong>. That means you track what the kitchen can actually use, like slices, rolls, cups, or bottles, instead of relying on confusing measurement fields in the main flow.
+                                Materials now work mainly with <strong>usable stock count</strong>. That means you track what the studio can actually use, like suiting lengths, lining rolls, zip counts, or trim packs, instead of relying on confusing measurement fields in the main flow.
                             </p>
                             <ul style={{ color: '#cbd5e1', marginTop: '1rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <li>If you buy in bulk, add a restock conversion rule such as <strong>2 kg becomes 20 slices</strong>.</li>
-                                <li>Recipes deduct from usable stock automatically when orders are fulfilled.</li>
+                                <li>If you buy in bulk, add a restock conversion rule such as <strong>1 roll becomes 8 suit lengths</strong>.</li>
+                                <li>Service material logic can deduct from usable stock automatically when work is fulfilled.</li>
                                 <li>AI-assisted stock adjustments are logged for accountability.</li>
                             </ul>
                         </div>
 
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', color: '#38bdf8', marginBottom: '1rem' }}> Shop Registration & Website</h3>
+                            <h3 style={{ fontSize: '1.5rem', color: '#38bdf8', marginBottom: '1rem' }}> Studio Registration & Website</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                When a vendor registers a shop, the system creates a vendor record, gives it a unique slug, and automatically makes a live landing page for that business.
+                                When a stylist or studio registers, the system creates a vendor record, gives it a unique slug, and automatically makes a live landing page for that business.
                             </p>
                             <ul style={{ color: '#cbd5e1', marginTop: '1rem', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <li>The landing page lives on a vendor route like <strong>/v/shop-slug</strong>.</li>
-                                <li>Branding, menu, testimonials, and support chat all feed into that vendor page.</li>
+                                <li>The landing page lives on a vendor route like <strong>/v/studio-slug</strong>.</li>
+                                <li>Branding, services, testimonials, gallery, and support chat all feed into that vendor page.</li>
                                 <li>Custom domains can also point to the same vendor storefront when configured.</li>
                             </ul>
                         </div>
 
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', color: '#f97316', marginBottom: '1rem' }}> Reservations & Venue Bookings</h3>
+                            <h3 style={{ fontSize: '1.5rem', color: '#f97316', marginBottom: '1rem' }}> Appointments & Client Bookings</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                Table bookings and venue reservations are now part of this admin. Vendors can collect booking requests from their landing page and manage them inside the new <strong>Reservations</strong> tab.
+                                Fitting requests and styling bookings are now part of this admin. Studios can collect booking requests from their landing page and manage them inside the <strong>Appointments</strong> tab.
                             </p>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6', marginTop: '0.85rem' }}>
-                                The current MVP supports table and venue booking requests, guest counts, preferred date and time, branch selection, occasion notes, and booking status updates from pending through completed.
+                                The current workflow supports consultation dates, measurement sessions, fitting dates, payment status, garment notes, and internal studio notes from inquiry through completion.
                             </p>
                         </div>
 
                         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '2rem' }}>
                             <h3 style={{ fontSize: '1.5rem', color: '#3b82f6', marginBottom: '1rem' }}> Live Chat & Support</h3>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                <strong>Live Chat</strong> is still your direct support line to customers. Use it when someone is confused, delayed, or needs help with an order.
+                                <strong>Live Chat</strong> is still your direct support line to clients. Use it when someone is confused, delayed, or needs help with a booking or garment order.
                             </p>
                             <p style={{ color: '#cbd5e1', lineHeight: '1.6', marginTop: '0.85rem' }}>
                                 The storefront assistant and WhatsApp flow can also hand sensitive cases back to human support when needed.
@@ -4439,8 +4438,8 @@ export default function AdminDashboard({ session }) {
                 <div className="vault-container">
                     <div className="vault-header">
                         <div>
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Live Ingredient Inventory</h2>
-                            <p style={{ color: '#94a3b8' }}>Manage raw ingredients. Stock automatically deducts when Kitchen Staff click "Start Preparing".</p>
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Fabric & Materials Library</h2>
+                            <p style={{ color: '#94a3b8' }}>Manage fabrics, trims, and production materials that the studio needs to keep jobs moving.</p>
                         </div>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button className="btn-secondary" onClick={fetchInitialData} disabled={isRefreshing} style={isRefreshing ? { opacity: 0.7, cursor: 'not-allowed' } : {}}>
@@ -4448,7 +4447,7 @@ export default function AdminDashboard({ session }) {
                             </button>
                             {!isStaff && (
                                 <button className="btn-primary" onClick={() => setIsAddingIngredient(true)}>
-                                    + Add Ingredient
+                                    + Add Material
                                 </button>
                             )}
                         </div>
@@ -4456,7 +4455,7 @@ export default function AdminDashboard({ session }) {
 
                     {isStaff && (
                         <div style={{ marginBottom: '1.25rem', padding: '0.9rem 1rem', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.25)', background: 'rgba(59,130,246,0.08)', color: '#bfdbfe' }}>
-                            Staff stock mode is locked to viewing inventory here. Use <strong>AI Manager</strong> to log refills, wastage, and stock adjustments.
+                            Staff stock mode is locked to viewing materials here. Use <strong>AI Manager</strong> to log refills, wastage, and stock adjustments.
                         </div>
                     )}
 
@@ -4471,7 +4470,7 @@ export default function AdminDashboard({ session }) {
                         }}>
                             <div className="kds-card" style={{ padding: '2rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
-                                    <h3 style={{ fontSize: '1.5rem' }}>{editingIngredient.id ? "Edit Ingredient" : "Add New Ingredient"}</h3>
+                                    <h3 style={{ fontSize: '1.5rem' }}>{editingIngredient.id ? "Edit Material" : "Add New Material"}</h3>
                                     <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }} onClick={() => {
                                         setEditingIngredient({ id: null, name: '', current_stock: '', low_stock_threshold: '', restock_input_label: '', restock_input_quantity: '', restock_output_quantity: '' });
                                         setIsAddingIngredient(false);
@@ -4483,9 +4482,9 @@ export default function AdminDashboard({ session }) {
                                     setTimeout(() => setIsAddingIngredient(false), 300);
                                 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div className="form-group">
-                                        <label>Ingredient Name</label>
-                                        <input type="text" required className="form-input" placeholder="e.g. Eggs" value={editingIngredient.name} onChange={(e) => setEditingIngredient({ ...editingIngredient, name: e.target.value })} />
-                                        <small style={{ color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>Must exactly match the name used in your recipes for accurate auto-deduction.</small>
+                                        <label>Material Name</label>
+                                        <input type="text" required className="form-input" placeholder="e.g. Navy suiting, lining, buttons" value={editingIngredient.name} onChange={(e) => setEditingIngredient({ ...editingIngredient, name: e.target.value })} />
+                                        <small style={{ color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>Use this for fabrics, trims, buttons, lining, and any studio production essentials.</small>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="form-group">
@@ -4500,7 +4499,7 @@ export default function AdminDashboard({ session }) {
                                     <div style={{ padding: '1rem', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.18)', background: 'rgba(59,130,246,0.05)' }}>
                                         <div style={{ fontWeight: '700', marginBottom: '0.35rem', color: '#bfdbfe' }}>Optional Bulk Restock Rule</div>
                                         <p style={{ color: '#94a3b8', margin: '0 0 1rem 0', fontSize: '0.85rem', lineHeight: '1.5' }}>
-                                            If this ingredient is bought in bulk, tell the system how that bulk purchase turns into usable stock. Example: 2 kg becomes 20 slices.
+                                            If a material is bought in bulk, tell the system how that purchase turns into usable studio stock. Example: 1 roll becomes 8 suit lengths.
                                         </p>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                             <div className="form-group">
@@ -4523,7 +4522,7 @@ export default function AdminDashboard({ session }) {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                                        <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}>{editingIngredient.id ? "Save Changes" : "Save Ingredient"}</button>
+                                        <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}>{editingIngredient.id ? "Save Changes" : "Save Material"}</button>
                                     </div>
                                 </form>
                             </div>
@@ -4534,7 +4533,7 @@ export default function AdminDashboard({ session }) {
                         <table className="vault-table">
                             <thead>
                                 <tr>
-                                    <th>Ingredient</th>
+                                    <th>Material</th>
                                     <th>Stock Count</th>
                                     <th>Restock Conversion</th>
                                     <th>Status</th>
@@ -4597,7 +4596,7 @@ export default function AdminDashboard({ session }) {
                                     );
                                 })}
                                 {ingredients.length === 0 && (
-                                    <tr><td colSpan="5" className="empty-state">No inventory ingredients found. Make sure mapping is complete.</td></tr>
+                                    <tr><td colSpan="5" className="empty-state">No materials added yet. Start with fabrics, lining, trims, and other production stock.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -4616,10 +4615,10 @@ export default function AdminDashboard({ session }) {
                         borderBottom: '1px solid rgba(255,255,255,0.05)' 
                     }}>
                         {[
-                            { id: 'menu', label: ' Live Menu Manager', icon: '' },
+                            { id: 'menu', label: ' Service & Pricing Manager', icon: '' },
                             { id: 'gallery', label: ' Gallery Manager', icon: '' },
-                            { id: 'branches', label: ' Branch Manager', icon: '' },
-                            { id: 'events', label: ' Mobile Stalls & Events', icon: '' },
+                            { id: 'branches', label: ' Studio Location Manager', icon: '' },
+                            { id: 'events', label: ' Pop-ups & Trunk Shows', icon: '' },
                             { id: 'branding', label: ' Brand & Website Identity', icon: '' }
                         ].map(sub => (
                             <button
@@ -4647,20 +4646,20 @@ export default function AdminDashboard({ session }) {
 
                     <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
                         
-                        {/* 1. Live Menu Manager */}
+                        {/* 1. Service & Pricing Manager */}
                         {cmsActiveSubTab === 'menu' && (
                             <div className="finances-card">
                                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                     Live Menu Manager
+                                     Service & Pricing Manager
                                 </h2>
 
-                                {/* Recipe Builder Modal UI */}
+                                {/* Service Materials Builder Modal UI */}
                                 {editingRecipeFor && (
                                     <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #3b82f6', boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
                                             <div>
-                                                <h3 style={{ margin: 0, color: '#3b82f6', fontSize: '1.25rem' }}>Construct Recipe: {editingRecipeFor.name}</h3>
-                                                <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>Define how many usable stock counts of each ingredient are used to make this item.</p>
+                                                <h3 style={{ margin: 0, color: '#3b82f6', fontSize: '1.25rem' }}>Build Materials Logic: {editingRecipeFor.name}</h3>
+                                                <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>Define how many units of fabric or materials are normally needed for this service or package.</p>
                                             </div>
                                             <button className="btn-secondary" onClick={() => setEditingRecipeFor(null)}>Cancel</button>
                                         </div>
@@ -4673,7 +4672,7 @@ export default function AdminDashboard({ session }) {
                                                         value={row.ingredient}
                                                         onChange={(e) => handleRecipeIngredientChange(idx, 'ingredient', e.target.value)}
                                                     >
-                                                        <option value="">-- Select Ingredient --</option>
+                                                        <option value="">-- Select Material --</option>
                                                         {ingredients.map(ing => (
                                                             <option key={ing.id} value={ing.name}>{ing.name}</option>
                                                         ))}
@@ -4698,21 +4697,21 @@ export default function AdminDashboard({ session }) {
                                                 </div>
                                             ))}
                                             <button className="btn-secondary" type="button" style={{ marginTop: '0.5rem' }} onClick={handleAddRecipeIngredientRow}>
-                                                 Add Another Ingredient
+                                                 Add Another Material
                                             </button>
                                         </div>
 
                                         <button className="btn-primary" type="button" style={{ width: '100%', background: '#10b981' }} onClick={handleSaveRecipe}>
-                                            Save Recipe Logic
+                                            Save Materials Logic
                                         </button>
                                     </div>
                                 )}
 
-                                {/* Add / Edit Menu Item Form */}
+                                {/* Add / Edit Service Form */}
                                 <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #334155' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <h3 style={{ margin: 0, color: '#00e676', fontSize: '1.1rem' }}>
-                                            {editingMenuItem.id ? 'Edit Menu Item' : 'Add New Kota / Item'}
+                                            {editingMenuItem.id ? 'Edit Service / Package' : 'Add New Service / Package'}
                                         </h3>
                                         {editingMenuItem.id && (
                                             <button
@@ -4728,14 +4727,14 @@ export default function AdminDashboard({ session }) {
                                     <form onSubmit={handleSaveMenuItem} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 1fr auto', gap: '1rem', alignItems: 'end' }}>
                                         <div>
                                             <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Name</label>
-                                            <input required type="text" className="kds-input" value={editingMenuItem.name} onChange={e => setEditingMenuItem({ ...editingMenuItem, name: e.target.value })} placeholder="e.g. The Jumbo Special" style={{ width: '100%' }} />
+                                            <input required type="text" className="kds-input" value={editingMenuItem.name} onChange={e => setEditingMenuItem({ ...editingMenuItem, name: e.target.value })} placeholder="e.g. Bespoke Suit Package" style={{ width: '100%' }} />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Price (R)</label>
                                             <input required type="number" min="0" step="0.01" className="kds-input" value={editingMenuItem.price} onChange={e => setEditingMenuItem({ ...editingMenuItem, price: e.target.value })} style={{ width: '100%' }} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Menu Image Upload</label>
+                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Service Image Upload</label>
                                             {editingMenuItem.image_url && !menuImageFile && (
                                                 <div style={{ marginBottom: '0.25rem' }}>
                                                     <img src={editingMenuItem.image_url} alt="Current" style={{ height: '30px', borderRadius: '4px', verticalAlign: 'middle', marginRight: '0.5rem' }} />
@@ -4751,17 +4750,17 @@ export default function AdminDashboard({ session }) {
                                             />
                                         </div>
                                         <button type="submit" disabled={uploadingMenuImage} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>
-                                            {uploadingMenuImage ? 'Saving...' : (editingMenuItem.id ? 'Save Changes' : 'Add Item')}
+                                            {uploadingMenuImage ? 'Saving...' : (editingMenuItem.id ? 'Save Changes' : 'Add Service')}
                                         </button>
                                     </form>
                                 </div>
 
-                                {/* Existing Menu Items Table */}
+                                {/* Existing Services Table */}
                                 <div className="table-wrapper">
                                     <table style={{ width: '100%', borderCollapse: 'collapse', color: '#f8fafc', background: '#1e293b', borderRadius: '8px', overflow: 'hidden' }}>
                                         <thead style={{ background: '#0f172a', textAlign: 'left' }}>
                                             <tr>
-                                                <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Item Name</th>
+                                                <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Service / Package</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Price</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Assigned Image</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155', textAlign: 'right' }}>Actions</th>
@@ -4778,7 +4777,7 @@ export default function AdminDashboard({ session }) {
                                                             onClick={() => openRecipeBuilder(item)}
                                                             style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
                                                         >
-                                                            Build Recipe
+                                                            Materials Logic
                                                         </button>
                                                         <button
                                                             onClick={() => setEditingMenuItem({ id: item.id, name: item.name, price: item.price, image_url: item.image_url || '' })}
@@ -4796,7 +4795,7 @@ export default function AdminDashboard({ session }) {
                                                 </tr>
                                             ))}
                                             {menuItems.length === 0 && (
-                                                <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No menu items found.</td></tr>
+                                                <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No services or packages added yet.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
@@ -4808,7 +4807,7 @@ export default function AdminDashboard({ session }) {
                             <div className="finances-card">
                                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Gallery Manager</h2>
                                 <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-                                    Use this for atmosphere, venue, staff, interior, event, and other brand photos. Menu items stay in <strong>Live Menu Manager</strong>.
+                                    Use this for atmosphere, studio, staff, fittings, events, and other brand photos. Service visuals stay in <strong>Service & Pricing Manager</strong>.
                                 </p>
 
                                 <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #334155' }}>
@@ -4877,15 +4876,15 @@ export default function AdminDashboard({ session }) {
                             </div>
                         )}
 
-                        {/* 2. Branch Manager */}
+                        {/* 2. Studio Location Manager */}
                         {cmsActiveSubTab === 'branches' && (
                             <div className="finances-card">
                                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                     Branch Manager (Permanent Locations)
+                                     Studio Location Manager
                                 </h2>
-                                <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Manage your physical shop locations. Customers will select these during checkout.</p>
+                                <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Manage your studio, showroom, or fitting locations. Clients will see these when booking or collecting.</p>
 
-                                {/* Add New Branch Form */}
+                                {/* Add New Studio Location Form */}
                                 <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #334155' }}>
                                     <form onSubmit={async (e) => {
                                         e.preventDefault();
@@ -4901,29 +4900,29 @@ export default function AdminDashboard({ session }) {
                                                 is_active: true
                                             });
                                             if (error) throw error;
-                                            alert("Branch added successfully!");
+                                            alert("Studio location added successfully!");
                                             setNewBranch({ name: '', address: '', google_maps_url: '', office_hours: '', is_active: true });
                                             fetchInitialData(); // Refresh list
                                         } catch (err) {
-                                            alert("Error saving branch: " + err.message);
+                                            alert("Error saving studio location: " + err.message);
                                         } finally {
                                             setIsSavingBranch(false);
                                         }
                                     }} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'flex-start' }}>
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Branch Name (e.g. Flora Park Shop)</label>
+                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Studio Location Name (e.g. Kings Wear Studio)</label>
                                             <input 
                                                 required 
                                                 type="text" 
                                                 className="kds-input" 
                                                 value={newBranch.name} 
                                                 onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} 
-                                                placeholder="Enter branch name"
+                                                placeholder="Enter studio location name"
                                                 style={{ width: '100%' }}
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Physical Address (Live Location)</label>
+                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Physical Address</label>
                                             <input 
                                                 type="text" 
                                                 className="kds-input" 
@@ -4957,7 +4956,7 @@ export default function AdminDashboard({ session }) {
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%', paddingTop: '1.4rem', gap: '0.5rem' }}>
                                             <button type="submit" className="btn-primary" disabled={isSavingBranch} style={{ padding: '0.75rem 2rem', flex: 1 }}>
-                                                {isSavingBranch ? 'Saving...' : ' Add Branch'}
+                                                {isSavingBranch ? 'Saving...' : ' Add Location'}
                                             </button>
                                         </div>
                                     </form>
@@ -4967,7 +4966,7 @@ export default function AdminDashboard({ session }) {
                                     <table style={{ width: '100%', borderCollapse: 'collapse', color: '#f8fafc', background: '#1e293b', borderRadius: '8px', overflow: 'hidden' }}>
                                         <thead style={{ background: '#0f172a', textAlign: 'left' }}>
                                             <tr>
-                                                <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Branch Name</th>
+                                                <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Studio Location</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Type</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155' }}>Status</th>
                                                 <th style={{ padding: '1rem', borderBottom: '1px solid #334155', textAlign: 'right' }}>Actions</th>
@@ -5030,7 +5029,7 @@ export default function AdminDashboard({ session }) {
                                                 </tr>
                                             ))}
                                             {locations.filter(l => !l.is_mobile).length === 0 && (
-                                                <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No permanent branches found. Add your first shop above!</td></tr>
+                                                <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No studio locations added yet. Add your first fitting location above.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
@@ -5038,16 +5037,16 @@ export default function AdminDashboard({ session }) {
                             </div>
                         )}
 
-                        {/* 3. Mobile Stalls & Events */}
+                        {/* 3. Pop-ups & Trunk Shows */}
                         {cmsActiveSubTab === 'events' && (
                             <div className="finances-card">
-                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}> Mobile Stalls & Events</h2>
+                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}> Pop-ups & Trunk Shows</h2>
 
-                                {/* List Existing Stalls */}
+                                {/* List Existing Events */}
                                 <div style={{ marginBottom: '2rem' }}>
                                     <h3 style={{ fontSize: '1.2rem', color: '#94a3b8', marginBottom: '1rem' }}>Active Events</h3>
                                     {locations.filter(l => l.is_mobile).length === 0 ? (
-                                        <p style={{ color: '#64748b', fontStyle: 'italic' }}>No mobile stall events scheduled.</p>
+                                        <p style={{ color: '#64748b', fontStyle: 'italic' }}>No pop-ups or trunk shows scheduled.</p>
                                     ) : (
                                         <div style={{ display: 'grid', gap: '1rem' }}>
                                             {locations.filter(l => l.is_mobile).map(stall => (
@@ -5077,22 +5076,22 @@ export default function AdminDashboard({ session }) {
                                     <div className="form-group" style={{ marginBottom: '1rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>Event Name (e.g. Peter Mokaba Popup)</label>
+                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>Event Name (e.g. Sandton Style Popup)</label>
                                                 <input
                                                     type="text"
                                                     className="kds-input"
-                                                    placeholder="Peter Mokaba Popup"
+                                                    placeholder="Sandton Style Popup"
                                                     value={newStallEvent.name}
                                                     onChange={(e) => setNewStallEvent({ ...newStallEvent, name: e.target.value })}
                                                     style={{ width: '100%', padding: '0.75rem', background: '#334155', border: '1px solid #475569', color: '#f8fafc', borderRadius: '4px' }}
                                                 />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>"Currently At" Announcement Banner</label>
+                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>"Now Booking At" Announcement Banner</label>
                                                 <input
                                                     type="text"
                                                     className="kds-input"
-                                                    placeholder="e.g. Catch us outside Gate 2 today!"
+                                                    placeholder="e.g. Visit our Sandton fitting popup this Saturday"
                                                     value={newStallEvent.banner_text}
                                                     onChange={(e) => setNewStallEvent({ ...newStallEvent, banner_text: e.target.value })}
                                                     style={{ width: '100%', padding: '0.75rem', background: '#334155', border: '1px solid #475569', color: '#f8fafc', borderRadius: '4px' }}
@@ -5102,7 +5101,7 @@ export default function AdminDashboard({ session }) {
 
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>Stall Date</label>
+                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '0.5rem' }}>Event Date</label>
                                                 <input
                                                     type="text"
                                                     className="kds-input"
@@ -5135,10 +5134,10 @@ export default function AdminDashboard({ session }) {
                                                 />
                                             </div>
                                         </div>
-                                        <small style={{ color: '#64748b', display: 'block', marginTop: '1rem' }}>These details will automatically appear on the public landing page in the Locations section.</small>
+                                        <small style={{ color: '#64748b', display: 'block', marginTop: '1rem' }}>These details can appear on the public page to help clients find your next pop-up or fashion event.</small>
                                     </div>
                                     <button type="submit" className="btn-primary" disabled={isSavingStall}>
-                                        {isSavingStall ? 'Saving...' : 'Add Stall Event'}
+                                        {isSavingStall ? 'Saving...' : 'Add Event'}
                                     </button>
                                 </form>
                             </div>
