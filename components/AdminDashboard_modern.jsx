@@ -5306,6 +5306,18 @@ export default function AdminDashboard({ session }) {
                                             let finalBranding = { ...vendorConfig.branding };
                                             let finalLogoUrl = vendorConfig.logo_url;
 
+                                            const normalizedAboutStory = (finalBranding.about_text || finalBranding.about_story || '').trim();
+                                            if (normalizedAboutStory) {
+                                                finalBranding.about_text = normalizedAboutStory;
+                                                finalBranding.about_story = normalizedAboutStory;
+                                            }
+
+                                            const normalizedWhatsapp = (finalBranding.contact_whatsapp || finalBranding.whatsapp_number || finalBranding.whatsapp || '').trim();
+                                            if (normalizedWhatsapp) {
+                                                finalBranding.contact_whatsapp = normalizedWhatsapp;
+                                                finalBranding.whatsapp_number = normalizedWhatsapp;
+                                            }
+
                                             // 1. Upload Hero Image if provided
                                             if (heroImageFile) {
                                                 const fileExt = heroImageFile.name.split('.').pop();
@@ -5486,7 +5498,7 @@ export default function AdminDashboard({ session }) {
 
                                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                             <label>About Us Story</label>
-                                            <textarea className="kds-input" rows="3" value={vendorConfig.branding?.about_text || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, about_text: e.target.value}})} style={{ minHeight: '100px', resize: 'vertical' }}></textarea>
+                                            <textarea className="kds-input" rows="3" value={vendorConfig.branding?.about_text || vendorConfig.branding?.about_story || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, about_text: e.target.value, about_story: e.target.value}})} style={{ minHeight: '100px', resize: 'vertical' }}></textarea>
                                         </div>
 
                                         <button type="submit" className="btn-primary" disabled={uploadingHero} style={{ background: '#00e676', color: '#000', fontWeight: 'bold' }}>

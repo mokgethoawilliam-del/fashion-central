@@ -386,23 +386,47 @@ export default function KingsWearLanding() {
   };
 
   const branding = vendorProfile?.branding || {};
+  const firstFilledText = (...values) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return "";
+  };
   const effectiveBranding = {
     ...branding,
     logo_url: branding.logo_url || vendorProfile?.logo_url || "",
   };
-  const primaryColor = branding.primary_color || "#C9A646";
-  const secondaryColor = branding.secondary_color || "#0d0d14";
-  const contactEmail = branding.contact_email || "bookings@kingswear.co.za";
-  const whatsappNumber = branding.contact_whatsapp || branding.whatsapp_number || branding.whatsapp || "";
+  const primaryColor = firstFilledText(branding.primary_color, vendorProfile?.primary_color) || "#C9A646";
+  const secondaryColor = firstFilledText(branding.secondary_color) || "#0d0d14";
+  const contactEmail = firstFilledText(branding.contact_email, vendorProfile?.contact_email) || "bookings@kingswear.co.za";
+  const whatsappNumber = firstFilledText(
+    branding.contact_whatsapp,
+    branding.whatsapp_number,
+    branding.whatsapp,
+    vendorProfile?.whatsapp_number,
+    vendorProfile?.whatsapp
+  );
   const whatsappHref = whatsappNumber
     ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I’d like to book a fitting with ${vendorProfile?.name || "Kings Wear"}.`)}`
     : null;
-  const locationLabel = branding.location_label || branding.city || "Polokwane, Limpopo";
-  const heroTitle = branding.hero_title || "Tailored for";
-  const heroHighlight = branding.hero_highlight || "Kings";
-  const heroSubtitle = branding.hero_subtitle || "Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.";
-  const aboutText = branding.about_text || "Kings Wear Clothing is a premium tailoring brand founded by King Wiz, specializing in bespoke suits crafted for men and women who value precision, elegance, and status. Each piece is designed to elevate your presence and reflect confidence at the highest level.";
-  const tagline = branding.tagline || "Premium Bespoke Tailoring";
+  const locationLabel = firstFilledText(branding.location_label, branding.city, vendorProfile?.city) || "Polokwane, Limpopo";
+  const heroTitle = firstFilledText(branding.hero_title, branding.headline) || "Tailored for";
+  const heroHighlight = firstFilledText(branding.hero_highlight, branding.hero_emphasis) || "Kings";
+  const heroSubtitle = firstFilledText(
+    branding.hero_subtitle,
+    branding.hero_description,
+    branding.welcome_text
+  ) || "Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.";
+  const aboutText = firstFilledText(
+    branding.about_text,
+    branding.about_story,
+    branding.about_us_story,
+    vendorProfile?.about_text,
+    vendorProfile?.about_story
+  ) || "Kings Wear Clothing is a premium tailoring brand founded by King Wiz, specializing in bespoke suits crafted for men and women who value precision, elegance, and status. Each piece is designed to elevate your presence and reflect confidence at the highest level.";
+  const tagline = firstFilledText(branding.tagline, branding.site_title, vendorProfile?.tagline) || "Premium Bespoke Tailoring";
   const galleryImages = gallery.length > 0
     ? gallery.map((item) => item.image_url).filter(Boolean)
     : [
