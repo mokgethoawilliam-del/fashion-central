@@ -1,4 +1,4 @@
-@charset "UTF-8";
+﻿@charset "UTF-8";
 
 /* =========================================================================
    VulaHub - Premium Design System
@@ -6,19 +6,19 @@
 
 :root {
   /* Color Palette */
-  --color-primary: #00e676;
-  --color-primary-hover: #00c853;
-  --color-secondary: #2979ff;
-  --color-background: #0f172a;
+  --color-primary: #c6a15b;
+  --color-primary-hover: #a8833d;
+  --color-secondary: #7d5f46;
+  --color-background: #0d0b10;
   /* Deep modern navy/dark */
-  --color-surface: rgba(30, 41, 59, 0.7);
+  --color-surface: rgba(26, 21, 25, 0.82);
   /* Glassmorphism surface */
-  --color-surface-hover: rgba(30, 41, 59, 0.9);
-  --color-text-main: #f8fafc;
-  --color-text-muted: #cbd5e1;
-  --color-border: rgba(255, 255, 255, 0.1);
+  --color-surface-hover: rgba(35, 28, 33, 0.94);
+  --color-text-main: #f7f1e8;
+  --color-text-muted: #d9cfbf;
+  --color-border: rgba(198, 161, 91, 0.14);
   --color-error: #ff1744;
-  --color-success: #00e676;
+  --color-success: #c6a15b;
 
   /* Typography */
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -26,7 +26,7 @@
 
   /* Shadows & Effects */
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --shadow-glow: 0 0 20px rgba(0, 230, 118, 0.4);
+  --shadow-glow: 0 0 20px rgba(198, 161, 91, 0.28);
   --border-radius-lg: 16px;
   --border-radius-md: 12px;
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -51,8 +51,8 @@ body {
   min-height: 100vh;
   /* Premium radial gradient background */
   background-image:
-    radial-gradient(circle at 15% 50%, rgba(0, 230, 118, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(41, 121, 255, 0.08), transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(198, 161, 91, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(122, 82, 70, 0.09), transparent 25%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -391,7 +391,7 @@ h6 {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 30px rgba(0, 230, 118, 0.2);
+  text-shadow: 0 0 30px rgba(198, 161, 91, 0.2);
 }
 
 .hero-subtitle {
@@ -523,7 +523,7 @@ h6 {
   cursor: pointer;
   width: 100%;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3);
+  box-shadow: 0 4px 15px rgba(198, 161, 91, 0.3);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -622,7 +622,7 @@ h6 {
   background: var(--color-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 230, 118, 0.3);
+  border: 1px solid rgba(198, 161, 91, 0.3);
   border-radius: var(--border-radius-lg);
   padding: 3rem 2rem;
   text-align: center;
@@ -647,7 +647,7 @@ h6 {
 .success-icon-wrapper {
   width: 80px;
   height: 80px;
-  background: rgba(0, 230, 118, 0.1);
+  background: rgba(198, 161, 91, 0.1);
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -768,7 +768,7 @@ h6 {
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.2);
+  box-shadow: 0 0 0 3px rgba(198, 161, 91, 0.2);
 }
 
 .form-input::placeholder {
@@ -892,7 +892,7 @@ select.form-input option {
   flex-direction: row !important;
   height: 100vh !important;
   width: 100vw !important;
-  background-color: #0f172a !important;
+  background-color: #0d0b10 !important;
   color: #f8fafc !important;
   overflow: hidden !important;
   position: fixed !important;
@@ -902,8 +902,8 @@ select.form-input option {
 
 .kds-sidebar {
   width: 260px;
-  background: rgba(30, 41, 59, 1);
-  border-right: 2px solid #1e293b;
+  background: linear-gradient(180deg, #17131a 0%, #120f14 100%);
+  border-right: 1px solid rgba(198, 161, 91, 0.12);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -1010,8 +1010,8 @@ select.form-input option {
 
 .content-header {
   padding: 1rem 2rem;
-  background: rgba(30, 41, 59, 1);
-  border-bottom: 1px solid #1e293b;
+  background: linear-gradient(180deg, #17131a 0%, #120f14 100%);
+  border-bottom: 1px solid rgba(198, 161, 91, 0.12);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1025,7 +1025,7 @@ select.form-input option {
 }
 
 .kds-brand span {
-  color: #00e676;
+  color: #c6a15b;
 }
 
 .kds-controls {
@@ -1196,7 +1196,7 @@ select.form-input option {
 
 .kds-item-row .qty {
   font-weight: bold;
-  color: #00e676;
+  color: #c6a15b;
 }
 
 .item-details {
@@ -1399,7 +1399,7 @@ select.form-input option {
 }
 
 .vault-breadcrumb-current {
-  color: #00e676;
+  color: #c6a15b;
   font-weight: 700;
 }
 
@@ -1416,8 +1416,8 @@ select.form-input option {
   align-items: center;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: rgba(0, 230, 118, 0.12);
-  border: 1px solid rgba(0, 230, 118, 0.28);
+  background: rgba(198, 161, 91, 0.12);
+  border: 1px solid rgba(198, 161, 91, 0.28);
   color: #86efac;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1440,7 +1440,7 @@ select.form-input option {
 
 .vault-timer-bar {
   height: 100%;
-  background: #00e676;
+  background: #c6a15b;
   transition: width 1s linear;
 }
 
@@ -1458,7 +1458,7 @@ select.form-input option {
 
 .copy-badge {
   background: #0f172a;
-  color: #00e676;
+  color: #c6a15b;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: monospace;
@@ -1509,10 +1509,10 @@ select.form-input option {
 }
 
 .vault-card:hover {
-  background: rgba(0, 230, 118, 0.05);
+  background: rgba(198, 161, 91, 0.05);
   border-color: var(--color-primary);
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 230, 118, 0.1);
+  box-shadow: 0 10px 30px rgba(198, 161, 91, 0.1);
 }
 
 .vault-card-grid .vault-card {
@@ -1553,7 +1553,7 @@ select.form-input option {
   margin-bottom: 0.35rem;
 }
 
-.vault-card-paystack::before { background: rgba(0, 230, 118, 0.45); }
+.vault-card-paystack::before { background: rgba(198, 161, 91, 0.45); }
 .vault-card-netcash::before { background: rgba(59, 130, 246, 0.45); }
 .vault-card-domains::before { background: rgba(245, 158, 11, 0.45); }
 .vault-card-whatsapp::before { background: rgba(34, 197, 94, 0.45); }
@@ -1594,3 +1594,4 @@ select.form-input option {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
