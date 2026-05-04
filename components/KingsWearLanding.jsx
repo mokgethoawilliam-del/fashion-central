@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../src/supabaseClient";
 
-/* ─── Luxury Header ─── */
+/* Luxury Header */
 function LuxuryHeader({ vendorName, branding, onNavClick }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -243,7 +243,7 @@ function LuxuryHeader({ vendorName, branding, onNavClick }) {
   );
 }
 
-/* ─── Main Landing Page ─── */
+/* Main Landing Page */
 export default function KingsWearLanding() {
   const { vendorSlug } = useParams();
   const [vendorId, setVendorId] = useState(null);
@@ -266,34 +266,62 @@ export default function KingsWearLanding() {
 
   useEffect(() => {
     async function init() {
-      const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kingswear";
-      let { data } = await supabase
-        .from("public_vendors")
-        .select("*")
-        .eq("slug", pathSlug)
-        .maybeSingle();
-      if (!data && pathSlug === "kingswear") {
-        const alt = await supabase.from("public_vendors").select("*").eq("slug", "kings-wear").maybeSingle();
-        data = alt.data;
+      const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kings-wear-clothing";
+      const candidateSlugs = Array.from(new Set([
+        pathSlug,
+        "kings-wear-clothing",
+        "kings-wear",
+        "kingswear",
+      ].filter(Boolean)));
+      const candidateSources = ["vendors", "public_vendors", "kg_vendors"];
+
+      const tryLoadVendor = async (source, slug) => {
+        try {
+          const { data, error } = await supabase.from(source).select("*").eq("slug", slug).maybeSingle();
+          if (error) {
+            if (["PGRST205", "42P01", "42703"].includes(error.code)) {
+              return null;
+            }
+            throw error;
+          }
+          return data || null;
+        } catch (err) {
+          if (["PGRST205", "42P01", "42703"].includes(err?.code)) {
+            return null;
+          }
+          console.warn(`Vendor lookup failed on ${source}:`, err?.message || err);
+          return null;
+        }
+      };
+
+      let data = null;
+      for (const source of candidateSources) {
+        for (const slug of candidateSlugs) {
+          data = await tryLoadVendor(source, slug);
+          if (data) break;
+        }
+        if (data) break;
       }
+
       if (!data) {
-        const alt = await supabase
-          .from("public_vendors")
-          .select("*")
-          .or("slug.eq.kingswear,slug.eq.kings-wear,name.ilike.%kings%wear%")
-          .limit(1)
-          .maybeSingle();
-        data = alt.data;
+        for (const source of candidateSources) {
+          try {
+            const { data: anyVendor, error } = await supabase.from(source).select("*").limit(1).maybeSingle();
+            if (!error && anyVendor) {
+              data = anyVendor;
+              break;
+            }
+          } catch (err) {
+            if (!["PGRST205", "42P01", "42703"].includes(err?.code)) {
+              console.warn(`Fallback vendor lookup failed on ${source}:`, err?.message || err);
+            }
+          }
+        }
       }
+
       if (data) {
         setVendorId(data.id);
         setVendorProfile(data);
-      } else {
-        const { data: anyVendor } = await supabase.from("public_vendors").select("*").limit(1).single();
-        if (anyVendor) {
-          setVendorId(anyVendor.id);
-          setVendorProfile(anyVendor);
-        }
       }
     }
     init();
@@ -429,7 +457,7 @@ export default function KingsWearLanding() {
     vendorProfile?.whatsapp
   );
   const whatsappHref = whatsappNumber
-    ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I’d like to book a fitting with ${vendorProfile?.name || "Kings Wear"}.`)}`
+    ? `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I'd like to book a fitting with ${vendorProfile?.name || "Kings Wear"}.`)}`
     : null;
   const locationLabel = firstFilledText(branding.location_label, branding.city, vendorProfile?.city) || "Polokwane, Limpopo";
   const heroTitle = firstFilledText(branding.hero_title, branding.headline) || "Tailored for";
@@ -451,7 +479,7 @@ export default function KingsWearLanding() {
   const servicesHeading = firstFilledText(branding.services_heading) || "Our Services";
   const servicesIntro = firstFilledText(branding.services_intro) || "A clear snapshot of the tailoring, styling, and premium looks this studio currently offers.";
   const pricingIntro = firstFilledText(branding.pricing_intro) || "Let clients qualify themselves before they DM. Final quotes still depend on fabric, finish, complexity, and delivery timelines.";
-  const galleryIntro = firstFilledText(branding.gallery_intro) || "A look at the studio’s transformations, fittings, and standout finished pieces.";
+  const galleryIntro = firstFilledText(branding.gallery_intro) || "A look at the studio's transformations, fittings, and standout finished pieces.";
   const bookingHeading = firstFilledText(branding.booking_heading) || "Book a Fitting / Get Styled";
   const bookingIntro = firstFilledText(branding.booking_intro) || "Share your occasion, preferred garment, and timing so the studio can guide your fitting and next steps.";
   const instagramHandle = firstFilledText(branding.instagram_handle, vendorProfile?.instagram_handle);
@@ -498,7 +526,7 @@ export default function KingsWearLanding() {
     : [
         { title: "Precision Craftsmanship", desc: "Every stitch and finishing detail is handled with care." },
         { title: "Premium Fabrics", desc: "The studio guides clients toward finishes that match the brief and budget." },
-        { title: "Personalized Experience", desc: "Each fitting and look is shaped around the client’s identity, event, and desired impression." },
+        { title: "Personalized Experience", desc: "Each fitting and look is shaped around the client's identity, event, and desired impression." },
       ];
 
   /* Shared section heading style */
@@ -987,3 +1015,6 @@ export default function KingsWearLanding() {
     </div>
   );
 }
+
+
+

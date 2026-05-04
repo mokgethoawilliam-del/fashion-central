@@ -179,6 +179,14 @@ export default function AdminDashboard({ session }) {
         ? 'Hello! I am your Studio Copilot. I can help you log inventory, and point out stock risks.'
         : 'Hello! I am your AI Manager. I can help with bookings, orders, and day-to-day operations across your studio.';
 
+    const resolvedVendorLogo = vendorConfig?.logo_url || vendorConfig?.branding?.logo_url || '';
+    const vendorInitials = (vendorConfig?.name || 'Studio')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() || '')
+        .join('') || 'S';
+
     const getOrderItemName = (item) =>
         item?.menu_items?.name ||
         item?.name ||
@@ -2000,10 +2008,10 @@ export default function AdminDashboard({ session }) {
             <nav className="kds-sidebar">
                 <div className="sidebar-branding">
                     <div className="vendor-logo-container">
-                        {vendorConfig?.logo_url ? (
-                            <img src={vendorConfig.logo_url} alt="Logo" className="vendor-logo" />
+                        {resolvedVendorLogo ? (
+                            <img src={resolvedVendorLogo} alt="Logo" className="vendor-logo" />
                         ) : (
-                            <div className="vendor-logo" style={{ background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}></div>
+                            <div className="vendor-logo" style={{ background: 'linear-gradient(135deg, #2a2126, #17131a)', border: '1px solid rgba(198, 161, 91, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: '800', color: '#f7f1e8', letterSpacing: '0.08em' }}>{vendorInitials}</div>
                         )}
                         <span className="vendor-name">{vendorConfig?.name || 'My Shop'}</span>
                     </div>
@@ -2471,10 +2479,15 @@ export default function AdminDashboard({ session }) {
                                     justifyContent: 'center',
                                     width: '40px',
                                     height: '40px',
-                                    fontSize: '1.2rem'
+                                    fontSize: '1.2rem',
+                                    overflow: 'hidden'
                                 }}
                             >
-                                
+                                {resolvedVendorLogo ? (
+                                    <img src={resolvedVendorLogo} alt="Studio Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                ) : (
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', letterSpacing: '0.08em', color: '#f7f1e8' }}>{vendorInitials}</span>
+                                )}
                             </button>
                             
                             {isProfileMenuOpen && (
@@ -5644,4 +5657,8 @@ const OrderCard = ({ order, updateOrderStatus, showLocation, setIsVerifyingPin, 
         </div>
     );
 };
+
+
+
+
 
