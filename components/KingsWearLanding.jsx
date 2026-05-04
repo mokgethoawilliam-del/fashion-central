@@ -757,11 +757,7 @@ export default function KingsWearLanding() {
         <p style={sectionHeading}>The Difference</p>
         <h2 style={sectionTitle}>Why Choose Us</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "48px", maxWidth: "1000px", margin: "48px auto 0" }}>
-          {[
-            { title: "Precision Craftsmanship", desc: "Every stitch, every detail — perfected." },
-            { title: "Premium Fabrics", desc: "Only the finest materials sourced worldwide." },
-            { title: "Personalized Experience", desc: "Tailored to your identity and vision." },
-          ].map((item) => (
+          {valuePoints.map((item) => (
             <div key={item.title}>
               <h3 style={{ fontSize: "1.05rem", marginBottom: "12px", fontWeight: 400, letterSpacing: "0.06em", fontFamily: "'Outfit', sans-serif" }}>{item.title}</h3>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9rem", fontWeight: 300, lineHeight: 1.7 }}>{item.desc}</p>
