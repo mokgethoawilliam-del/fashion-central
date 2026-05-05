@@ -99,16 +99,6 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     reader.readAsDataURL(file);
 });
 
-const getMissingSupabaseColumn = (error) => {
-    const message = String(error?.message || '');
-    return (
-        message.match(/column vendors\.([a-zA-Z0-9_]+) does not exist/)?.[1] ||
-        message.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'vendors'/)?.[1] ||
-        message.match(/Could not find the column '([a-zA-Z0-9_]+)' of 'vendors'/)?.[1] ||
-        ''
-    );
-};
-
 export default function AdminDashboard({ session }) {
     const [orders, setOrders] = useState([]);
     const [historyOrders, setHistoryOrders] = useState([]);
@@ -5513,23 +5503,12 @@ export default function AdminDashboard({ session }) {
                                                 finalBranding.logo_url = finalLogoUrl;
                                             }
 
-                                            let vendorUpdate = {
+                                            const vendorUpdate = {
                                                 name: vendorConfig.name,
                                                 branding: finalBranding,
                                             };
-                                            if (vendorConfig.custom_domain !== undefined) vendorUpdate.custom_domain = vendorConfig.custom_domain;
-                                            if (finalLogoUrl) vendorUpdate.logo_url = finalLogoUrl;
 
-                                            let { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
-
-                                            while (error && ["42703", "PGRST204", "PGRST205"].includes(error.code)) {
-                                                const missingColumn = getMissingSupabaseColumn(error);
-                                                if (!missingColumn || !(missingColumn in vendorUpdate)) break;
-                                                const { [missingColumn]: _missing, ...schemaSafeUpdate } = vendorUpdate;
-                                                vendorUpdate = schemaSafeUpdate;
-                                                const retry = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
-                                                error = retry.error;
-                                            }
+                                            const { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
                                             
                                             if (error) throw error;
                                             alert("Branding settings updated! ");
