@@ -5508,11 +5508,19 @@ export default function AdminDashboard({ session }) {
                                                 branding: finalBranding,
                                             };
 
-                                            const { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
+                                            const { data: updatedVendor, error } = await supabase
+                                                .from('vendors')
+                                                .update(vendorUpdate)
+                                                .eq('id', currentVendorId)
+                                                .select('id, name, branding')
+                                                .maybeSingle();
                                             
                                             if (error) throw error;
+                                            if (!updatedVendor) {
+                                                throw new Error('Supabase accepted the request but updated 0 vendor rows. Your login is not linked to this vendor in live RLS policies.');
+                                            }
                                             alert("Branding settings updated! ");
-                                            setVendorConfig({ ...vendorConfig, name: vendorConfig.name, branding: finalBranding, logo_url: finalLogoUrl });
+                                            setVendorConfig({ ...vendorConfig, ...updatedVendor, logo_url: finalLogoUrl });
                                             setHeroImageFile(null);
                                             setLogoFile(null);
                                         } catch (err) {
