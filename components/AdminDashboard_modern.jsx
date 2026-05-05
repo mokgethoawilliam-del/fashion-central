@@ -99,6 +99,16 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     reader.readAsDataURL(file);
 });
 
+const getMissingSupabaseColumn = (error) => {
+    const message = String(error?.message || '');
+    return (
+        message.match(/column vendors\.([a-zA-Z0-9_]+) does not exist/)?.[1] ||
+        message.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'vendors'/)?.[1] ||
+        message.match(/Could not find the column '([a-zA-Z0-9_]+)' of 'vendors'/)?.[1] ||
+        ''
+    );
+};
+
 export default function AdminDashboard({ session }) {
     const [orders, setOrders] = useState([]);
     const [historyOrders, setHistoryOrders] = useState([]);
@@ -529,7 +539,7 @@ export default function AdminDashboard({ session }) {
                     
                     // Fashion Central may not have the restaurant-style menu relation.
                     // Pull a flatter order shape so the dashboard can still render.
-                    const { data: fullOrder } = await supabase
+                    let { data: fullOrder, error: fullOrderErr } = await supabase
                         .from('orders')
                         .select(`
                             *,
@@ -542,6 +552,22 @@ export default function AdminDashboard({ session }) {
                         `)
                         .eq('id', newOrderRow.id)
                         .single();
+
+                    if (fullOrderErr && String(fullOrderErr.message || '').includes('modifiers_json')) {
+                        const retry = await supabase
+                            .from('orders')
+                            .select(`
+                                *,
+                                order_items (
+                                    quantity,
+                                    menu_item_id,
+                                    name
+                                )
+                            `)
+                            .eq('id', newOrderRow.id)
+                            .single();
+                        fullOrder = retry.data;
+                    }
 
                     const newOrder = fullOrder || newOrderRow; // Fallback to shallow if fetch fails
 
@@ -677,7 +703,7 @@ export default function AdminDashboard({ session }) {
                 setLocations(locData);
             }
 
-            const { data: orderData, error: orderErr } = await supabase
+            let { data: orderData, error: orderErr } = await supabase
                 .from('orders')
                 .select(`
                     *,
@@ -691,6 +717,24 @@ export default function AdminDashboard({ session }) {
                 .eq('vendor_id', currentVendorId)
                 .neq('status', 'pending') 
                 .order('created_at', { ascending: false });
+
+            if (orderErr && String(orderErr.message || '').includes('modifiers_json')) {
+                const retry = await supabase
+                    .from('orders')
+                    .select(`
+                        *,
+                        order_items (
+                            quantity,
+                            menu_item_id,
+                            name
+                        )
+                    `)
+                    .eq('vendor_id', currentVendorId)
+                    .neq('status', 'pending')
+                    .order('created_at', { ascending: false });
+                orderData = retry.data;
+                orderErr = retry.error;
+            }
 
             if (orderErr) throw orderErr;
 
@@ -5479,7 +5523,7 @@ export default function AdminDashboard({ session }) {
                                             let { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
 
                                             while (error && ["42703", "PGRST204", "PGRST205"].includes(error.code)) {
-                                                const missingColumn = String(error.message || '').match(/column vendors\.([a-zA-Z0-9_]+) does not exist/)?.[1];
+                                                const missingColumn = getMissingSupabaseColumn(error);
                                                 if (!missingColumn || !(missingColumn in vendorUpdate)) break;
                                                 const { [missingColumn]: _missing, ...schemaSafeUpdate } = vendorUpdate;
                                                 vendorUpdate = schemaSafeUpdate;
