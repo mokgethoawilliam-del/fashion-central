@@ -92,6 +92,18 @@ const fromEditableLines = (value, fields) => {
         .filter((item) => Object.values(item).some(Boolean));
 };
 
+const servicesFromBranding = (branding = {}) => {
+    const cards = Array.isArray(branding.service_cards) ? branding.service_cards : [];
+    return cards.map((card, index) => ({
+        id: `branding-service-${index}`,
+        name: card.title || `Service ${index + 1}`,
+        price: Number(card.price || 0),
+        image_url: card.image || '',
+        description: card.desc || '',
+        source: 'branding'
+    }));
+};
+
 const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -121,7 +133,7 @@ export default function AdminDashboard({ session }) {
         preorder_deadline: ''
     });
     const [isSavingStall, setIsSavingStall] = useState(false);
-    const [editingMenuItem, setEditingMenuItem] = useState({ id: null, name: '', price: '', image_url: '' });
+    const [editingMenuItem, setEditingMenuItem] = useState({ id: null, name: '', price: '', image_url: '', description: '' });
 
     const [locations, setLocations] = useState([]);
     const [selectedLocation, setSelectedLocation] = useState('all');
@@ -754,21 +766,22 @@ export default function AdminDashboard({ session }) {
                 setIngredients(ingData);
             }
 
-            const { data: menuData, error: menuErr } = await supabase
-                .from('menu_items')
-                .select('*')
-                .eq('vendor_id', currentVendorId)
-                .order('price');
+            setMenuItems(servicesFromBranding(vData?.branding || {}));
 
-            if (!menuErr && menuData) {
-                setMenuItems(menuData);
-            }
-
-            const { data: galleryData, error: galleryErr } = await supabase
+            let { data: galleryData, error: galleryErr } = await supabase
                 .from('site_gallery')
                 .select('*')
                 .eq('vendor_id', currentVendorId)
                 .order('created_at', { ascending: false });
+
+            if (galleryErr && String(galleryErr.message || '').includes('created_at')) {
+                const retry = await supabase
+                    .from('site_gallery')
+                    .select('*')
+                    .eq('vendor_id', currentVendorId);
+                galleryData = retry.data;
+                galleryErr = retry.error;
+            }
 
             if (!galleryErr && galleryData) {
                 setSiteGallery(galleryData);
@@ -1508,6 +1521,10 @@ export default function AdminDashboard({ session }) {
     };
 
     const openRecipeBuilder = (menuItem) => {
+        if (menuItem.source === 'branding') {
+            alert('Materials logic needs the full services table. This service is saved in Brand & Website Identity so it appears on the public page.');
+            return;
+        }
         setEditingRecipeFor(menuItem);
         const existingRecipe = menuItem.recipe_json || {};
         const rows = Object.keys(existingRecipe).map(key => ({ ingredient: key, quantity: existingRecipe[key] }));
@@ -1522,29 +1539,61 @@ export default function AdminDashboard({ session }) {
             let finalImageUrl = editingMenuItem.image_url || null;
 
             if (menuImageFile) {
-                const fileExt = menuImageFile.name.split('.').pop();
-                const fileName = `menu_${Date.now()}.${fileExt}`;
-                const filePath = `menu-images/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('business-documents')
-                    .upload(filePath, menuImageFile);
-
-                if (uploadError) {
-                    console.error("Upload error:", uploadError);
-                    alert("Could not upload menu image.");
-                    setUploadingMenuImage(false);
-                    return;
-                }
-                
-                const { data: { publicUrl } } = supabase.storage
-                    .from('business-documents')
-                    .getPublicUrl(filePath);
-                
-                finalImageUrl = publicUrl;
+                finalImageUrl = await uploadBrandingImage(menuImageFile, 'menu-images');
             }
 
+            const servicePrice = parseFloat(editingMenuItem.price || 0);
+            const serviceDesc = editingMenuItem.description || `${editingMenuItem.name} tailored for clients who want a sharper, more intentional finish.`;
+            const saveServiceToBranding = async () => {
+                const currentBranding = vendorConfig?.branding || {};
+                const currentCards = Array.isArray(currentBranding.service_cards) ? currentBranding.service_cards : [];
+                const currentPricing = Array.isArray(currentBranding.pricing_cards) ? currentBranding.pricing_cards : [];
+                const nextCard = {
+                    title: editingMenuItem.name,
+                    desc: serviceDesc,
+                    image: finalImageUrl || '',
+                    price: servicePrice
+                };
+                const nextPriceCard = {
+                    title: editingMenuItem.name,
+                    price: `From R${servicePrice.toFixed(2)}`,
+                    copy: serviceDesc
+                };
+                const editingIndex = String(editingMenuItem.id || '').startsWith('branding-service-')
+                    ? Number(String(editingMenuItem.id).replace('branding-service-', ''))
+                    : -1;
+                const nextCards = [...currentCards];
+                const nextPricing = [...currentPricing];
+                if (editingIndex >= 0 && editingIndex < nextCards.length) {
+                    nextCards[editingIndex] = nextCard;
+                    nextPricing[editingIndex] = nextPriceCard;
+                } else {
+                    nextCards.push(nextCard);
+                    nextPricing.push(nextPriceCard);
+                }
+
+                const nextBranding = {
+                    ...currentBranding,
+                    service_cards: nextCards,
+                    pricing_cards: nextPricing
+                };
+                const { data: updatedVendor, error: brandingErr } = await supabase
+                    .from('vendors')
+                    .update({ name: vendorConfig.name, branding: nextBranding })
+                    .eq('id', currentVendorId)
+                    .select('id, name, branding')
+                    .maybeSingle();
+                if (brandingErr) throw brandingErr;
+                if (!updatedVendor) throw new Error('Supabase updated 0 rows. Your login is not linked to this vendor yet.');
+                setVendorConfig({ ...vendorConfig, ...updatedVendor });
+                setMenuItems(servicesFromBranding(updatedVendor.branding));
+            };
+
             if (editingMenuItem.id) {
+                if (String(editingMenuItem.id).startsWith('branding-service-')) {
+                    await saveServiceToBranding();
+                    alert("Service updated successfully!");
+                } else {
                 // Update existing item
                 const { error } = await supabase.from('menu_items')
                     .update({
@@ -1558,23 +1607,13 @@ export default function AdminDashboard({ session }) {
 
                 setMenuItems(menuItems.map(item => item.id === editingMenuItem.id ? { ...editingMenuItem, image_url: finalImageUrl, price: parseFloat(editingMenuItem.price) } : item).sort((a, b) => a.price - b.price));
                 alert("Menu item updated successfully!");
+                }
             } else {
-                // Insert new item
-                const { data, error } = await supabase.from('menu_items')
-                    .insert([{
-                        vendor_id: currentVendorId,
-                        name: editingMenuItem.name,
-                        price: parseFloat(editingMenuItem.price),
-                        image_url: finalImageUrl
-                    }])
-                    .select().single();
-
-                if (error) throw error;
-                setMenuItems([...menuItems, data].sort((a, b) => a.price - b.price));
-                alert("New menu item added successfully!");
+                await saveServiceToBranding();
+                alert("New service added to the website CMS.");
             }
 
-            setEditingMenuItem({ id: null, name: '', price: '', image_url: '' });
+            setEditingMenuItem({ id: null, name: '', price: '', image_url: '', description: '' });
             setMenuImageFile(null);
         } catch (err) {
             console.error(err);
@@ -1587,6 +1626,26 @@ export default function AdminDashboard({ session }) {
     const handleDeleteMenuItem = async (id, name) => {
         if (!await confirmAction(`Are you sure you want to delete ${name}? Customers will no longer be able to order it.`)) return;
         try {
+            if (String(id).startsWith('branding-service-')) {
+                const deleteIndex = Number(String(id).replace('branding-service-', ''));
+                const currentBranding = vendorConfig?.branding || {};
+                const nextBranding = {
+                    ...currentBranding,
+                    service_cards: (currentBranding.service_cards || []).filter((_, index) => index !== deleteIndex),
+                    pricing_cards: (currentBranding.pricing_cards || []).filter((_, index) => index !== deleteIndex)
+                };
+                const { data: updatedVendor, error } = await supabase
+                    .from('vendors')
+                    .update({ name: vendorConfig.name, branding: nextBranding })
+                    .eq('id', currentVendorId)
+                    .select('id, name, branding')
+                    .maybeSingle();
+                if (error) throw error;
+                if (!updatedVendor) throw new Error('Supabase updated 0 rows. Your login is not linked to this vendor yet.');
+                setVendorConfig({ ...vendorConfig, ...updatedVendor });
+                setMenuItems(servicesFromBranding(updatedVendor.branding));
+                return;
+            }
             const { error } = await supabase.from('menu_items').delete().eq('id', id);
             if (error) throw error;
             setMenuItems(menuItems.filter(item => item.id !== id));
@@ -1775,19 +1834,7 @@ export default function AdminDashboard({ session }) {
 
         try {
             setUploadingGalleryImage(true);
-            const fileExt = galleryImageFile.name.split('.').pop();
-            const fileName = `gallery_${Date.now()}.${fileExt}`;
-            const filePath = `site-gallery/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('business-documents')
-                .upload(filePath, galleryImageFile);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('business-documents')
-                .getPublicUrl(filePath);
+            const publicUrl = await uploadBrandingImage(galleryImageFile, 'site-gallery');
 
             const { data, error } = await supabase
                 .from('site_gallery')
@@ -4886,7 +4933,7 @@ export default function AdminDashboard({ session }) {
                                         {editingMenuItem.id && (
                                             <button
                                                 type="button"
-                                                onClick={() => setEditingMenuItem({ id: null, name: '', price: '', image_url: '' })}
+                                                onClick={() => setEditingMenuItem({ id: null, name: '', price: '', image_url: '', description: '' })}
                                                 style={{ background: 'transparent', border: '1px solid #94a3b8', color: '#94a3b8', borderRadius: '4px', padding: '0.25rem 0.75rem', cursor: 'pointer' }}
                                             >
                                                 Cancel Edit
@@ -4922,6 +4969,17 @@ export default function AdminDashboard({ session }) {
                                         <button type="submit" disabled={uploadingMenuImage} className="btn-primary" style={{ padding: '0.5rem 1rem' }}>
                                             {uploadingMenuImage ? 'Saving...' : (editingMenuItem.id ? 'Save Changes' : 'Add Service')}
                                         </button>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Website Description</label>
+                                            <textarea
+                                                className="kds-input"
+                                                rows="2"
+                                                value={editingMenuItem.description || ''}
+                                                onChange={e => setEditingMenuItem({ ...editingMenuItem, description: e.target.value })}
+                                                placeholder="Describe this service as clients should see it on the landing page."
+                                                style={{ width: '100%', resize: 'vertical' }}
+                                            />
+                                        </div>
                                     </form>
                                 </div>
 
@@ -4950,7 +5008,7 @@ export default function AdminDashboard({ session }) {
                                                             Materials Logic
                                                         </button>
                                                         <button
-                                                            onClick={() => setEditingMenuItem({ id: item.id, name: item.name, price: item.price, image_url: item.image_url || '' })}
+                                                            onClick={() => setEditingMenuItem({ id: item.id, name: item.name, price: item.price, image_url: item.image_url || '', description: item.description || '' })}
                                                             style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                                                         >
                                                             Edit

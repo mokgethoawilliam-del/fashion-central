@@ -339,20 +339,23 @@ export default function KingsWearLanding() {
         .limit(6);
       if (data) setTestimonials(data);
 
-      const { data: galleryData } = await supabase
+      let { data: galleryData, error: galleryError } = await supabase
         .from("site_gallery")
         .select("*")
         .eq("vendor_id", vendorId)
         .order("created_at", { ascending: false })
         .limit(6);
+      if (galleryError && String(galleryError.message || "").includes("created_at")) {
+        const retry = await supabase
+          .from("site_gallery")
+          .select("*")
+          .eq("vendor_id", vendorId)
+          .limit(6);
+        galleryData = retry.data;
+      }
       if (galleryData) setGallery(galleryData);
 
-      const { data: menuData } = await supabase
-        .from("menu_items")
-        .select("id, name, description, price, image_url")
-        .eq("vendor_id", vendorId)
-        .order("price", { ascending: true });
-      if (menuData) setMenuItems(menuData);
+      setMenuItems([]);
     }
     loadSupportingData();
   }, [vendorId]);
@@ -485,11 +488,7 @@ export default function KingsWearLanding() {
   const instagramHandle = firstFilledText(branding.instagram_handle, vendorProfile?.instagram_handle);
   const galleryImages = gallery.length > 0
     ? gallery.map((item) => item.image_url).filter(Boolean)
-    : [
-        "https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?w=600&q=80",
-        "https://images.unsplash.com/photo-1520975922324-93f8b39d19d6?w=600&q=80",
-        "https://images.unsplash.com/photo-1542060748-10c28b62716b?w=600&q=80",
-      ];
+    : [];
   const fallbackServices = [
     { title: "Bespoke Suits", desc: "Custom-tailored suits designed to fit your body with absolute precision and elegance." },
     { title: "Wedding Styling", desc: "Stand out on your special day with premium, unforgettable styling." },
@@ -761,8 +760,9 @@ export default function KingsWearLanding() {
             {galleryIntro}
           </p>
         </div>
+        {galleryImages.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
-          {galleryImages.slice(0, 3).map((src, i) => (
+          {galleryImages.slice(0, 6).map((src, i) => (
             <div key={i} style={{ overflow: "hidden" }}>
               <img
                 src={src}
@@ -781,6 +781,11 @@ export default function KingsWearLanding() {
             </div>
           ))}
         </div>
+        ) : (
+          <div style={{ border: `1px dashed ${primaryColor}55`, color: "rgba(255,255,255,0.5)", padding: "40px 24px", textAlign: "center" }}>
+            Portfolio photos will appear here after they are added in the admin Gallery Manager.
+          </div>
+        )}
       </section>
 
       {/* WHY CHOOSE US */}
