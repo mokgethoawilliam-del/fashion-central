@@ -5401,7 +5401,7 @@ export default function AdminDashboard({ session }) {
                                         try {
                                             setUploadingHero(true);
                                             let finalBranding = withLandingDefaults({ ...vendorConfig.branding });
-                                            let finalLogoUrl = vendorConfig.logo_url;
+                                            let finalLogoUrl = vendorConfig.logo_url || vendorConfig.branding?.logo_url || '';
 
                                             const normalizedAboutStory = (finalBranding.about_text || finalBranding.about_story || '').trim();
                                             if (normalizedAboutStory) {
@@ -5426,7 +5426,7 @@ export default function AdminDashboard({ session }) {
                                                     .upload(filePath, heroImageFile);
 
                                                 if (uploadError) {
-                                                    console.error("Hero upload error:", uploadError);
+                                                    throw uploadError;
                                                 } else {
                                                     const { data: { publicUrl } } = supabase.storage
                                                         .from('business-documents')
@@ -5446,7 +5446,7 @@ export default function AdminDashboard({ session }) {
                                                     .upload(filePath, logoFile);
 
                                                 if (uploadError) {
-                                                    console.error("Logo upload error:", uploadError);
+                                                    throw uploadError;
                                                 } else {
                                                     const { data: { publicUrl } } = supabase.storage
                                                         .from('business-documents')
@@ -5460,18 +5460,21 @@ export default function AdminDashboard({ session }) {
                                                 finalBranding.logo_url = finalLogoUrl;
                                             }
 
-                                            const vendorUpdate = {
+                                            let vendorUpdate = {
                                                 name: vendorConfig.name,
-                                                custom_domain: vendorConfig.custom_domain,
                                                 branding: finalBranding,
-                                                logo_url: finalLogoUrl
                                             };
+                                            if (vendorConfig.custom_domain !== undefined) vendorUpdate.custom_domain = vendorConfig.custom_domain;
+                                            if (finalLogoUrl) vendorUpdate.logo_url = finalLogoUrl;
 
                                             let { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
 
-                                            if (error && ["42703", "PGRST204", "PGRST205"].includes(error.code)) {
-                                                const { logo_url, ...schemaSafeUpdate } = vendorUpdate;
-                                                const retry = await supabase.from('vendors').update(schemaSafeUpdate).eq('id', currentVendorId);
+                                            while (error && ["42703", "PGRST204", "PGRST205"].includes(error.code)) {
+                                                const missingColumn = String(error.message || '').match(/column vendors\.([a-zA-Z0-9_]+) does not exist/)?.[1];
+                                                if (!missingColumn || !(missingColumn in vendorUpdate)) break;
+                                                const { [missingColumn]: _missing, ...schemaSafeUpdate } = vendorUpdate;
+                                                vendorUpdate = schemaSafeUpdate;
+                                                const retry = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
                                                 error = retry.error;
                                             }
                                             
@@ -5552,9 +5555,9 @@ export default function AdminDashboard({ session }) {
                                             </div>
                                             <div className="form-group">
                                                 <label>Store Logo</label>
-                                                {vendorConfig.logo_url && (
+                                                {resolvedVendorLogo && (
                                                     <div style={{ marginBottom: '0.5rem' }}>
-                                                        <img src={vendorConfig.logo_url} alt="Logo" style={{ height: '40px', borderRadius: '4px', border: '1px solid #334155' }} />
+                                                        <img src={resolvedVendorLogo} alt="Logo" style={{ height: '40px', borderRadius: '4px', border: '1px solid #334155' }} />
                                                     </div>
                                                 )}
                                                 <input 
