@@ -298,7 +298,7 @@ export default function AdminDashboard({ session }) {
         }
 
         if (file.size > 900000) {
-            throw new Error('No public storage bucket exists yet, and this image is too large to save directly. Use a logo under 900 KB or create a public storage bucket.');
+            throw new Error('No public storage bucket exists yet, so full-quality logos cannot be uploaded. Apply supabase/30-create-public-brand-storage.sql to the live Supabase project, then upload this logo again.');
         }
 
         return await fileToDataUrl(file);
