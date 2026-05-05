@@ -92,6 +92,13 @@ const fromEditableLines = (value, fields) => {
         .filter((item) => Object.values(item).some(Boolean));
 };
 
+const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Could not read image file.'));
+    reader.readAsDataURL(file);
+});
+
 export default function AdminDashboard({ session }) {
     const [orders, setOrders] = useState([]);
     const [historyOrders, setHistoryOrders] = useState([]);
@@ -264,6 +271,38 @@ export default function AdminDashboard({ session }) {
         Array.isArray(vendorConfig?.branding?.[key]) ? vendorConfig.branding[key] : KINGS_WEAR_DEFAULT_BRANDING[key],
         fields
     );
+    const uploadBrandingImage = async (file, folder) => {
+        if (!file) return '';
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${folder}_${Date.now()}.${fileExt}`;
+        const filePath = `${folder}/${fileName}`;
+        const candidateBuckets = ['business-documents', 'brand-assets', 'public-assets', 'images'];
+
+        for (const bucket of candidateBuckets) {
+            const { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, file);
+
+            if (!uploadError) {
+                const { data: { publicUrl } } = supabase.storage
+                    .from(bucket)
+                    .getPublicUrl(filePath);
+                return publicUrl;
+            }
+
+            const message = String(uploadError.message || '').toLowerCase();
+            if (!message.includes('bucket not found') && !message.includes('not found')) {
+                throw uploadError;
+            }
+        }
+
+        if (file.size > 900000) {
+            throw new Error('No public storage bucket exists yet, and this image is too large to save directly. Use a logo under 900 KB or create a public storage bucket.');
+        }
+
+        return await fileToDataUrl(file);
+    };
     const vendorInitials = (vendorConfig?.name || 'Studio')
         .split(' ')
         .filter(Boolean)
@@ -5417,43 +5456,13 @@ export default function AdminDashboard({ session }) {
 
                                             // 1. Upload Hero Image if provided
                                             if (heroImageFile) {
-                                                const fileExt = heroImageFile.name.split('.').pop();
-                                                const fileName = `hero_${Date.now()}.${fileExt}`;
-                                                const filePath = `hero-images/${fileName}`;
-
-                                                const { error: uploadError } = await supabase.storage
-                                                    .from('business-documents')
-                                                    .upload(filePath, heroImageFile);
-
-                                                if (uploadError) {
-                                                    throw uploadError;
-                                                } else {
-                                                    const { data: { publicUrl } } = supabase.storage
-                                                        .from('business-documents')
-                                                        .getPublicUrl(filePath);
-                                                    finalBranding.hero_image = publicUrl;
-                                                }
+                                                finalBranding.hero_image = await uploadBrandingImage(heroImageFile, 'hero-images');
                                             }
 
                                             // 2. Upload Logo if provided
                                             if (logoFile) {
-                                                const fileExt = logoFile.name.split('.').pop();
-                                                const fileName = `logo_${Date.now()}.${fileExt}`;
-                                                const filePath = `store-logos/${fileName}`;
-
-                                                const { error: uploadError } = await supabase.storage
-                                                    .from('business-documents')
-                                                    .upload(filePath, logoFile);
-
-                                                if (uploadError) {
-                                                    throw uploadError;
-                                                } else {
-                                                    const { data: { publicUrl } } = supabase.storage
-                                                        .from('business-documents')
-                                                        .getPublicUrl(filePath);
-                                                    finalLogoUrl = publicUrl;
-                                                    finalBranding.logo_url = publicUrl;
-                                                }
+                                                finalLogoUrl = await uploadBrandingImage(logoFile, 'store-logos');
+                                                finalBranding.logo_url = finalLogoUrl;
                                             }
 
                                             if (finalLogoUrl && !finalBranding.logo_url) {
