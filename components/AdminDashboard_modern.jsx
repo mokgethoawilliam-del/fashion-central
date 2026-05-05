@@ -104,6 +104,16 @@ const servicesFromBranding = (branding = {}) => {
     }));
 };
 
+const galleryFromBranding = (branding = {}) => {
+    const images = Array.isArray(branding.gallery_images) ? branding.gallery_images : [];
+    return images.map((item, index) => ({
+        id: `branding-gallery-${index}`,
+        image_url: typeof item === 'string' ? item : item.image_url || '',
+        caption: typeof item === 'string' ? null : item.caption || null,
+        source: 'branding'
+    })).filter((item) => item.image_url);
+};
+
 const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -309,8 +319,8 @@ export default function AdminDashboard({ session }) {
             }
         }
 
-        if (file.size > 900000) {
-            throw new Error('No public storage bucket exists yet, so full-quality logos cannot be uploaded. Apply supabase/30-create-public-brand-storage.sql to the live Supabase project, then upload this logo again.');
+        if (file.size > 6000000) {
+            throw new Error('No public storage bucket exists yet, and this image is too large to save directly. Apply supabase/30-create-public-brand-storage.sql to the live Supabase project, then upload this original-quality image again.');
         }
 
         return await fileToDataUrl(file);
@@ -784,7 +794,10 @@ export default function AdminDashboard({ session }) {
             }
 
             if (!galleryErr && galleryData) {
-                setSiteGallery(galleryData);
+                setSiteGallery(galleryData.length > 0 ? galleryData : galleryFromBranding(vData?.branding || {}));
+            } else if (galleryErr) {
+                console.warn('Gallery table unavailable, using branding gallery images:', galleryErr.message);
+                setSiteGallery(galleryFromBranding(vData?.branding || {}));
             }
 
             const { data: chatData } = await supabase
@@ -1836,6 +1849,31 @@ export default function AdminDashboard({ session }) {
             setUploadingGalleryImage(true);
             const publicUrl = await uploadBrandingImage(galleryImageFile, 'site-gallery');
 
+            const saveGalleryToBranding = async () => {
+                const currentBranding = vendorConfig?.branding || {};
+                const currentGallery = Array.isArray(currentBranding.gallery_images) ? currentBranding.gallery_images : [];
+                const nextBranding = {
+                    ...currentBranding,
+                    gallery_images: [
+                        {
+                            image_url: publicUrl,
+                            caption: newGalleryCaption.trim() || null
+                        },
+                        ...currentGallery
+                    ]
+                };
+                const { data: updatedVendor, error: brandingErr } = await supabase
+                    .from('vendors')
+                    .update({ name: vendorConfig.name, branding: nextBranding })
+                    .eq('id', currentVendorId)
+                    .select('id, name, branding')
+                    .maybeSingle();
+                if (brandingErr) throw brandingErr;
+                if (!updatedVendor) throw new Error('Supabase updated 0 rows. Your login is not linked to this vendor yet.');
+                setVendorConfig({ ...vendorConfig, ...updatedVendor });
+                setSiteGallery(galleryFromBranding(updatedVendor.branding));
+            };
+
             const { data, error } = await supabase
                 .from('site_gallery')
                 .insert([{
@@ -1846,9 +1884,15 @@ export default function AdminDashboard({ session }) {
                 .select()
                 .single();
 
-            if (error) throw error;
-
-            setSiteGallery([data, ...siteGallery]);
+            if (error) {
+                if (["PGRST205", "42P01", "42703", "PGRST204"].includes(error.code)) {
+                    await saveGalleryToBranding();
+                } else {
+                    throw error;
+                }
+            } else {
+                setSiteGallery([data, ...siteGallery]);
+            }
             setGalleryImageFile(null);
             setNewGalleryCaption('');
             alert('Gallery image added.');
@@ -1864,6 +1908,27 @@ export default function AdminDashboard({ session }) {
         if (!await confirmAction(`Remove this gallery image${galleryItem.caption ? `: ${galleryItem.caption}` : ''}?`)) return;
 
         try {
+            if (String(galleryItem.id).startsWith('branding-gallery-')) {
+                const deleteIndex = Number(String(galleryItem.id).replace('branding-gallery-', ''));
+                const currentBranding = vendorConfig?.branding || {};
+                const nextBranding = {
+                    ...currentBranding,
+                    gallery_images: (currentBranding.gallery_images || []).filter((_, index) => index !== deleteIndex)
+                };
+                const { data: updatedVendor, error } = await supabase
+                    .from('vendors')
+                    .update({ name: vendorConfig.name, branding: nextBranding })
+                    .eq('id', currentVendorId)
+                    .select('id, name, branding')
+                    .maybeSingle();
+                if (error) throw error;
+                if (!updatedVendor) throw new Error('Supabase updated 0 rows. Your login is not linked to this vendor yet.');
+                setVendorConfig({ ...vendorConfig, ...updatedVendor });
+                setSiteGallery(galleryFromBranding(updatedVendor.branding));
+                alert('Gallery image removed.');
+                return;
+            }
+
             const { error } = await supabase
                 .from('site_gallery')
                 .delete()

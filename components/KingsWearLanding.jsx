@@ -486,9 +486,12 @@ export default function KingsWearLanding() {
   const bookingHeading = firstFilledText(branding.booking_heading) || "Book a Fitting / Get Styled";
   const bookingIntro = firstFilledText(branding.booking_intro) || "Share your occasion, preferred garment, and timing so the studio can guide your fitting and next steps.";
   const instagramHandle = firstFilledText(branding.instagram_handle, vendorProfile?.instagram_handle);
+  const brandingGalleryImages = parseList(branding.gallery_images)
+    .map((item) => typeof item === "string" ? item : item?.image_url)
+    .filter(Boolean);
   const galleryImages = gallery.length > 0
     ? gallery.map((item) => item.image_url).filter(Boolean)
-    : [];
+    : brandingGalleryImages;
   const fallbackServices = [
     { title: "Bespoke Suits", desc: "Custom-tailored suits designed to fit your body with absolute precision and elegance." },
     { title: "Wedding Styling", desc: "Stand out on your special day with premium, unforgettable styling." },
