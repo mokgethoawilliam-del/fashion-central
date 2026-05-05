@@ -495,7 +495,10 @@ export default function KingsWearLanding() {
     { title: "Wedding Styling", desc: "Stand out on your special day with premium, unforgettable styling." },
     { title: "Image Transformation", desc: "Upgrade your entire look and elevate your personal brand to new heights." },
   ];
-  const serviceItems = menuItems.length > 0
+  const brandingServiceCards = parseList(branding.service_cards);
+  const serviceItems = brandingServiceCards.length > 0
+    ? brandingServiceCards
+    : menuItems.length > 0
     ? menuItems.slice(0, 6).map((item) => ({
         title: item.name,
         desc: firstFilledText(item.description) || `${item.name} tailored for clients who want a sharper, more intentional finish.`,

@@ -13,6 +13,85 @@ const playDing = () => {
     }
 };
 
+const KINGS_WEAR_DEFAULT_BRANDING = {
+    tagline: 'Premium Bespoke Tailoring',
+    welcome_text: 'Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.',
+    hero_title: 'Tailored for',
+    hero_highlight: 'Kings',
+    hero_subtitle: 'Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.',
+    about_heading: 'About Kings Wear Clothing',
+    about_text: 'Kings Wear Clothing is a premium tailoring brand founded by King Wiz, specializing in bespoke suits crafted for men and women who value precision, elegance, and status. Each piece is designed to elevate your presence and reflect confidence at the highest level.',
+    services_heading: 'Our Services',
+    services_intro: 'A clear snapshot of the tailoring, styling, and premium looks this studio currently offers.',
+    service_cards: [
+        { title: 'Bespoke Suits', desc: 'Custom-tailored suits designed to fit your body with absolute precision and elegance.' },
+        { title: 'Wedding Styling', desc: 'Stand out on your special day with premium, unforgettable styling.' },
+        { title: 'Image Transformation', desc: 'Upgrade your entire look and elevate your personal brand to new heights.' }
+    ],
+    pricing_intro: 'Let clients qualify themselves before they DM. Final quotes still depend on fabric, finish, complexity, and delivery timelines.',
+    pricing_cards: [
+        { title: 'Bespoke Suits', price: 'From R3 500', copy: 'Tailored for events, business, weddings, and personal image upgrades.' },
+        { title: 'Wedding Styling', price: 'From R5 500', copy: 'Premium looks for grooms, groomsmen, and standout ceremony styling.' },
+        { title: 'Fittings & Alterations', price: 'From R450', copy: 'Refinement, adjustments, and finishing to sharpen the final silhouette.' }
+    ],
+    value_points: [
+        { title: 'Precision Craftsmanship', desc: 'Every stitch and finishing detail is handled with care.' },
+        { title: 'Premium Fabrics', desc: 'The studio guides clients toward finishes that match the brief and budget.' },
+        { title: 'Personalized Experience', desc: "Each fitting and look is shaped around the client's identity, event, and desired impression." }
+    ],
+    gallery_intro: "A look at the studio's transformations, fittings, and standout finished pieces.",
+    booking_heading: 'Book a Fitting / Get Styled',
+    booking_intro: 'Share your occasion, preferred garment, and timing so the studio can guide your fitting and next steps.',
+    location_label: 'Polokwane, Limpopo',
+    contact_email: 'bookings@kingswear.co.za',
+    faq_items: [
+        { q: 'How do fittings work?', a: 'We start with a consultation, take your measurements, discuss your occasion and style direction, then confirm your fitting and production timeline.' },
+        { q: 'Do you style weddings and special events?', a: 'Yes. We handle groom looks, wedding party styling, matric dances, graduations, red-carpet moments, and premium occasion wear.' },
+        { q: 'How much do your garments cost?', a: 'Pricing depends on fabric, finish, design complexity, and whether the piece is bespoke or styled from an existing concept. The guide below gives starting prices.' },
+        { q: 'How early should I book?', a: 'For weddings and major events, booking at least 2 to 4 weeks ahead is safest. For urgent fittings, message early so availability can be confirmed.' }
+    ]
+};
+
+const hasValue = (value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== null && value !== undefined && String(value).trim() !== '';
+};
+
+const withLandingDefaults = (branding = {}) => {
+    const next = { ...branding };
+    Object.entries(KINGS_WEAR_DEFAULT_BRANDING).forEach(([key, value]) => {
+        if (!hasValue(next[key])) {
+            next[key] = Array.isArray(value) ? value.map((item) => ({ ...item })) : value;
+        }
+    });
+    if (!hasValue(next.about_story) && hasValue(next.about_text)) {
+        next.about_story = next.about_text;
+    }
+    return next;
+};
+
+const toEditableLines = (items, fields) => {
+    if (!Array.isArray(items)) return '';
+    return items
+        .map((item) => fields.map((field) => item?.[field] || '').join(' | '))
+        .join('\n');
+};
+
+const fromEditableLines = (value, fields) => {
+    return String(value || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+            const parts = line.split('|').map((part) => part.trim());
+            return fields.reduce((record, field, index) => {
+                record[field] = parts[index] || '';
+                return record;
+            }, {});
+        })
+        .filter((item) => Object.values(item).some(Boolean));
+};
+
 export default function AdminDashboard({ session }) {
     const [orders, setOrders] = useState([]);
     const [historyOrders, setHistoryOrders] = useState([]);
@@ -180,6 +259,11 @@ export default function AdminDashboard({ session }) {
         : 'Hello! I am your AI Manager. I can help with bookings, orders, and day-to-day operations across your studio.';
 
     const resolvedVendorLogo = vendorConfig?.logo_url || vendorConfig?.branding?.logo_url || '';
+    const brandingValue = (key) => vendorConfig?.branding?.[key] ?? KINGS_WEAR_DEFAULT_BRANDING[key] ?? '';
+    const brandingLines = (key, fields) => toEditableLines(
+        Array.isArray(vendorConfig?.branding?.[key]) ? vendorConfig.branding[key] : KINGS_WEAR_DEFAULT_BRANDING[key],
+        fields
+    );
     const vendorInitials = (vendorConfig?.name || 'Studio')
         .split(' ')
         .filter(Boolean)
@@ -5316,7 +5400,7 @@ export default function AdminDashboard({ session }) {
                                         e.preventDefault();
                                         try {
                                             setUploadingHero(true);
-                                            let finalBranding = { ...vendorConfig.branding };
+                                            let finalBranding = withLandingDefaults({ ...vendorConfig.branding });
                                             let finalLogoUrl = vendorConfig.logo_url;
 
                                             const normalizedAboutStory = (finalBranding.about_text || finalBranding.about_story || '').trim();
@@ -5409,7 +5493,7 @@ export default function AdminDashboard({ session }) {
                                             </div>
                                             <div className="form-group">
                                                 <label>Tagline</label>
-                                                <input type="text" className="kds-input" value={vendorConfig.branding?.tagline || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, tagline: e.target.value}})} />
+                                                <input type="text" className="kds-input" value={brandingValue('tagline')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, tagline: e.target.value}})} />
                                             </div>
                                             <div className="form-group">
                                                 <label>Primary Brand Color</label>
@@ -5420,7 +5504,7 @@ export default function AdminDashboard({ session }) {
                                             </div>
                                             <div className="form-group">
                                                 <label>Welcome Text</label>
-                                                <input type="text" className="kds-input" value={vendorConfig.branding?.welcome_text || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, welcome_text: e.target.value}})} />
+                                                <input type="text" className="kds-input" value={brandingValue('welcome_text')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, welcome_text: e.target.value}})} />
                                             </div>
                                             <div className="form-group">
                                                 <label>Contact Email</label>
@@ -5428,7 +5512,7 @@ export default function AdminDashboard({ session }) {
                                                     type="email"
                                                     className="kds-input"
                                                     placeholder="e.g. bookings@yourbusiness.com"
-                                                    value={vendorConfig.branding?.contact_email || ''}
+                                                    value={brandingValue('contact_email')}
                                                     onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, contact_email: e.target.value}})}
                                                 />
                                             </div>
@@ -5464,7 +5548,7 @@ export default function AdminDashboard({ session }) {
                                             </div>
                                             <div className="form-group">
                                                 <label>Hero Title</label>
-                                                <input type="text" className="kds-input" value={vendorConfig.branding?.hero_title || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_title: e.target.value}})} placeholder="e.g. Good food for" />
+                                                <input type="text" className="kds-input" value={brandingValue('hero_title')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_title: e.target.value}})} placeholder="e.g. Good food for" />
                                             </div>
                                             <div className="form-group">
                                                 <label>Store Logo</label>
@@ -5490,12 +5574,12 @@ export default function AdminDashboard({ session }) {
 
                                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                             <label>Hero Title Highlight</label>
-                                            <input type="text" placeholder="e.g. every occasion." className="kds-input" value={vendorConfig.branding?.hero_highlight || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_highlight: e.target.value}})} />
+                                            <input type="text" placeholder="e.g. every occasion." className="kds-input" value={brandingValue('hero_highlight')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_highlight: e.target.value}})} />
                                         </div>
 
                                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                             <label>Hero Subtitle</label>
-                                            <input type="text" placeholder="e.g. Premium dining with bold local flavour." className="kds-input" value={vendorConfig.branding?.hero_subtitle || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_subtitle: e.target.value}})} />
+                                            <input type="text" placeholder="e.g. Premium dining with bold local flavour." className="kds-input" value={brandingValue('hero_subtitle')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, hero_subtitle: e.target.value}})} />
                                         </div>
 
                                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -5519,7 +5603,101 @@ export default function AdminDashboard({ session }) {
 
                                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                             <label>About Us Story</label>
-                                            <textarea className="kds-input" rows="3" value={vendorConfig.branding?.about_text || vendorConfig.branding?.about_story || ''} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, about_text: e.target.value, about_story: e.target.value}})} style={{ minHeight: '100px', resize: 'vertical' }}></textarea>
+                                            <textarea className="kds-input" rows="3" value={vendorConfig.branding?.about_text ?? vendorConfig.branding?.about_story ?? KINGS_WEAR_DEFAULT_BRANDING.about_text} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, about_text: e.target.value, about_story: e.target.value}})} style={{ minHeight: '100px', resize: 'vertical' }}></textarea>
+                                        </div>
+
+                                        <div style={{ background: 'rgba(15,23,42,0.55)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '1rem', marginBottom: '1.5rem' }}>
+                                            <h3 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Landing Page Sections</h3>
+                                            <p style={{ color: '#94a3b8', marginTop: 0, marginBottom: '1rem', lineHeight: '1.6' }}>
+                                                These are the same sections the public Kings Wear page reads from Supabase.
+                                            </p>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                                                <div className="form-group">
+                                                    <label>About Heading</label>
+                                                    <input type="text" className="kds-input" value={brandingValue('about_heading')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, about_heading: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.about_heading} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Location Label</label>
+                                                    <input type="text" className="kds-input" value={brandingValue('location_label')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, location_label: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.location_label} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Services Heading</label>
+                                                    <input type="text" className="kds-input" value={brandingValue('services_heading')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, services_heading: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.services_heading} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Booking Heading</label>
+                                                    <input type="text" className="kds-input" value={brandingValue('booking_heading')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, booking_heading: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.booking_heading} />
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Services Intro</label>
+                                                <textarea className="kds-input" rows="2" value={brandingValue('services_intro')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, services_intro: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.services_intro} style={{ resize: 'vertical' }} />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Service Cards</label>
+                                                <textarea
+                                                    className="kds-input"
+                                                    rows="4"
+                                                    value={brandingLines('service_cards', ['title', 'desc'])}
+                                                    onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, service_cards: fromEditableLines(e.target.value, ['title', 'desc'])}})}
+                                                    placeholder="Bespoke Suits | Custom-tailored suits designed to fit your body."
+                                                    style={{ resize: 'vertical' }}
+                                                />
+                                                <small style={{ color: '#64748b' }}>One card per line: title | description</small>
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Pricing Intro</label>
+                                                <textarea className="kds-input" rows="2" value={brandingValue('pricing_intro')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, pricing_intro: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.pricing_intro} style={{ resize: 'vertical' }} />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Pricing Cards</label>
+                                                <textarea
+                                                    className="kds-input"
+                                                    rows="4"
+                                                    value={brandingLines('pricing_cards', ['title', 'price', 'copy'])}
+                                                    onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, pricing_cards: fromEditableLines(e.target.value, ['title', 'price', 'copy'])}})}
+                                                    placeholder="Bespoke Suits | From R3 500 | Tailored for events and business."
+                                                    style={{ resize: 'vertical' }}
+                                                />
+                                                <small style={{ color: '#64748b' }}>One card per line: title | price | copy</small>
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Value Points</label>
+                                                <textarea
+                                                    className="kds-input"
+                                                    rows="4"
+                                                    value={brandingLines('value_points', ['title', 'desc'])}
+                                                    onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, value_points: fromEditableLines(e.target.value, ['title', 'desc'])}})}
+                                                    placeholder="Precision Craftsmanship | Every stitch and finishing detail is handled with care."
+                                                    style={{ resize: 'vertical' }}
+                                                />
+                                                <small style={{ color: '#64748b' }}>One point per line: title | description</small>
+                                            </div>
+
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Gallery Intro</label>
+                                                <textarea className="kds-input" rows="2" value={brandingValue('gallery_intro')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, gallery_intro: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.gallery_intro} style={{ resize: 'vertical' }} />
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                                <label>Booking Intro</label>
+                                                <textarea className="kds-input" rows="2" value={brandingValue('booking_intro')} onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, booking_intro: e.target.value}})} placeholder={KINGS_WEAR_DEFAULT_BRANDING.booking_intro} style={{ resize: 'vertical' }} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>FAQ Items</label>
+                                                <textarea
+                                                    className="kds-input"
+                                                    rows="5"
+                                                    value={brandingLines('faq_items', ['q', 'a'])}
+                                                    onChange={(e) => setVendorConfig({...vendorConfig, branding: {...vendorConfig.branding, faq_items: fromEditableLines(e.target.value, ['q', 'a'])}})}
+                                                    placeholder="How do fittings work? | We start with a consultation and measurements."
+                                                    style={{ resize: 'vertical' }}
+                                                />
+                                                <small style={{ color: '#64748b' }}>One FAQ per line: question | answer</small>
+                                            </div>
                                         </div>
 
                                         <button type="submit" className="btn-primary" disabled={uploadingHero} style={{ background: '#c6a15b', color: '#000', fontWeight: 'bold' }}>
