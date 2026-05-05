@@ -5376,12 +5376,20 @@ export default function AdminDashboard({ session }) {
                                                 finalBranding.logo_url = finalLogoUrl;
                                             }
 
-                                            const { error } = await supabase.from('vendors').update({
+                                            const vendorUpdate = {
                                                 name: vendorConfig.name,
                                                 custom_domain: vendorConfig.custom_domain,
                                                 branding: finalBranding,
                                                 logo_url: finalLogoUrl
-                                            }).eq('id', currentVendorId);
+                                            };
+
+                                            let { error } = await supabase.from('vendors').update(vendorUpdate).eq('id', currentVendorId);
+
+                                            if (error && ["42703", "PGRST204", "PGRST205"].includes(error.code)) {
+                                                const { logo_url, ...schemaSafeUpdate } = vendorUpdate;
+                                                const retry = await supabase.from('vendors').update(schemaSafeUpdate).eq('id', currentVendorId);
+                                                error = retry.error;
+                                            }
                                             
                                             if (error) throw error;
                                             alert("Branding settings updated! ");
