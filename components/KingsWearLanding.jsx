@@ -478,7 +478,7 @@ export default function KingsWearLanding() {
     branding.hero_description,
     branding.welcome_text
   ) || "Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.";
-  const heroImage = firstFilledText(branding.hero_image, vendorProfile?.hero_image) || "/images/king-n-wife.jpg";
+  const heroImage = "/images/king-n-wife.jpg";
   const aboutText = firstFilledText(
     branding.about_text,
     branding.about_story,
