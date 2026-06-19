@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../src/supabaseClient";
 
@@ -251,6 +251,7 @@ export default function KingsWearLanding() {
   const [testimonials, setTestimonials] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -266,62 +267,69 @@ export default function KingsWearLanding() {
 
   useEffect(() => {
     async function init() {
-      const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kings-wear-clothing";
-      const candidateSlugs = Array.from(new Set([
-        pathSlug,
-        "kings-wear-clothing",
-        "kings-wear",
-        "kingswear",
-      ].filter(Boolean)));
-      const candidateSources = ["vendors", "public_vendors", "kg_vendors"];
+      try {
+        setLoading(true);
+        const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kings-wear-clothing";
+        const candidateSlugs = Array.from(new Set([
+          pathSlug,
+          "kings-wear-clothing",
+          "kings-wear",
+          "kingswear",
+        ].filter(Boolean)));
+        const candidateSources = ["vendors", "public_vendors", "kg_vendors"];
 
-      const tryLoadVendor = async (source, slug) => {
-        try {
-          const { data, error } = await supabase.from(source).select("*").eq("slug", slug).maybeSingle();
-          if (error) {
-            if (["PGRST205", "42P01", "42703"].includes(error.code)) {
+        const tryLoadVendor = async (source, slug) => {
+          try {
+            const { data, error } = await supabase.from(source).select("*").eq("slug", slug).maybeSingle();
+            if (error) {
+              if (["PGRST205", "42P01", "42703"].includes(error.code)) {
+                return null;
+              }
+              throw error;
+            }
+            return data || null;
+          } catch (err) {
+            if (["PGRST205", "42P01", "42703"].includes(err?.code)) {
               return null;
             }
-            throw error;
-          }
-          return data || null;
-        } catch (err) {
-          if (["PGRST205", "42P01", "42703"].includes(err?.code)) {
+            console.warn(`Vendor lookup failed on ${source}:`, err?.message || err);
             return null;
           }
-          console.warn(`Vendor lookup failed on ${source}:`, err?.message || err);
-          return null;
-        }
-      };
+        };
 
-      let data = null;
-      for (const source of candidateSources) {
-        for (const slug of candidateSlugs) {
-          data = await tryLoadVendor(source, slug);
+        let data = null;
+        for (const source of candidateSources) {
+          for (const slug of candidateSlugs) {
+            data = await tryLoadVendor(source, slug);
+            if (data) break;
+          }
           if (data) break;
         }
-        if (data) break;
-      }
 
-      if (!data) {
-        for (const source of candidateSources) {
-          try {
-            const { data: anyVendor, error } = await supabase.from(source).select("*").limit(1).maybeSingle();
-            if (!error && anyVendor) {
-              data = anyVendor;
-              break;
-            }
-          } catch (err) {
-            if (!["PGRST205", "42P01", "42703"].includes(err?.code)) {
-              console.warn(`Fallback vendor lookup failed on ${source}:`, err?.message || err);
+        if (!data) {
+          for (const source of candidateSources) {
+            try {
+              const { data: anyVendor, error } = await supabase.from(source).select("*").limit(1).maybeSingle();
+              if (!error && anyVendor) {
+                data = anyVendor;
+                break;
+              }
+            } catch (err) {
+              if (!["PGRST205", "42P01", "42703"].includes(err?.code)) {
+                console.warn(`Fallback vendor lookup failed on ${source}:`, err?.message || err);
+              }
             }
           }
         }
-      }
 
-      if (data) {
-        setVendorId(data.id);
-        setVendorProfile(data);
+        if (data) {
+          setVendorId(data.id);
+          setVendorProfile(data);
+        }
+      } catch (err) {
+        console.error("Initialization error:", err);
+      } finally {
+        setLoading(false);
       }
     }
     init();
@@ -470,6 +478,7 @@ export default function KingsWearLanding() {
     branding.hero_description,
     branding.welcome_text
   ) || "Bespoke tailoring, premium styling, and image transformation for weddings, events, business, and clients who need to arrive looking expensive.";
+  const heroImage = firstFilledText(branding.hero_image, vendorProfile?.hero_image) || "/images/king-n-wife.jpg";
   const aboutText = firstFilledText(
     branding.about_text,
     branding.about_story,
@@ -594,6 +603,47 @@ export default function KingsWearLanding() {
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  if (loading) {
+    const pathSlug = vendorSlug || window.location.pathname.replace(/^\/+/, "").split("/").filter(Boolean).pop() || "kings-wear-clothing";
+    const displayName = pathSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return (
+      <div style={{
+        background: '#0d0d14',
+        color: '#C9A646',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'Outfit', sans-serif",
+        gap: '16px',
+      }}>
+        <div style={{
+          fontSize: '1.1rem',
+          fontWeight: 300,
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          animation: 'kw-pulse 1.8s infinite ease-in-out'
+        }}>
+          {displayName}
+        </div>
+        <div style={{
+          width: '40px',
+          height: '1px',
+          background: '#C9A646',
+          opacity: 0.5
+        }} />
+        <style>{`
+          @keyframes kw-pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div style={{ backgroundColor: secondaryColor, color: "#fff", fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
 
@@ -608,7 +658,7 @@ export default function KingsWearLanding() {
           alignItems: "center",
           justifyContent: "center",
           textAlign: "center",
-          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('${branding.hero_image || "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=1920&q=80"}')`,
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('${heroImage}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           position: "relative",
@@ -786,7 +836,7 @@ export default function KingsWearLanding() {
         </div>
         ) : (
           <div style={{ border: `1px dashed ${primaryColor}55`, color: "rgba(255,255,255,0.5)", padding: "40px 24px", textAlign: "center" }}>
-            Portfolio photos will appear here after they are added in the admin Gallery Manager.
+            Portfolio photos coming soon.
           </div>
         )}
       </section>
