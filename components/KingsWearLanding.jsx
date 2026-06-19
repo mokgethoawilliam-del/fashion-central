@@ -658,7 +658,7 @@ export default function KingsWearLanding() {
           alignItems: "center",
           justifyContent: "center",
           textAlign: "center",
-          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('${heroImage}')`,
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.15)), url('${heroImage}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           position: "relative",
@@ -667,7 +667,7 @@ export default function KingsWearLanding() {
         <div style={{
           maxWidth: "700px",
           padding: "48px 40px",
-          backgroundColor: "rgba(0,0,0,0.65)",
+          backgroundColor: "rgba(0,0,0,0.25)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
           borderRadius: "8px",
